@@ -327,463 +327,57 @@ ContactSwap is split into two deployable units:
 | **Email** | MailerSend | Send generated contacts via email |
 | **Language** | TypeScript | Both API and frontend |
 
-#### Frontend (Next.js Static Export)
+#### Project Structure
 
-The frontend uses **Next.js** with static export (`output: 'export'`) for deployment to Cloudflare Pages:
-
-- **Framework:** Next.js 14+ with App Router
-- **Export mode:** Static (`next.config.js` → `output: 'export'`)
-- **Styling:** Tailwind CSS (recommended) or CSS Modules
-- **Deployment:** `next build` produces static files in `out/` → deploy to Cloudflare Pages
-
-**Why Next.js Static Export?**
-- React-based with excellent DX (file-based routing, TypeScript support)
-- Static export = no server required, perfect for Cloudflare Pages free tier
-- Built-in image optimization (with static loader)
-- Easy to add dynamic features later if needed
-
-**Configuration:**
-
-```typescript
-// next.config.ts
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
-  output: 'export',
-  trailingSlash: true,
-  images: {
-    unoptimized: true, // Required for static export
-  },
-};
-
-export default nextConfig;
-```
-
-**Build & Deploy:**
-
-```bash
-# Build static files
-cd frontend
-npm run build
-
-# Output in frontend/out/ — deploy to Cloudflare Pages
-# Cloudflare Pages build command: npm run build
-# Cloudflare Pages output directory: out
-```
-
-**Limitations of Static Export:**
-- No server-side rendering (SSR) or API routes in Next.js — all API calls go to the Worker
-- No `getServerSideProps` — use `getStaticProps` or client-side fetching
-- Dynamic routes must use `generateStaticParams` or be handled client-side
-- Form pages (`/form/[token]`) fetch data client-side from the API
-
-**Route Handling:**
-- Static pages (`/`, `/config`, `/config/templates`) — pre-rendered at build time
-- Dynamic pages (`/form/[token]`, `/form/[token]/done`) — shell rendered at build, data fetched client-side
-
-
-#### Email Delivery (MailerSend)
-
-For outbound email from Workers, we use **MailerSend**:
-
-- **Free tier:** 3,000 emails/month (fits ~100 forms/month target)
-- **Workers-compatible:** Simple HTTP API, works in edge runtime
-- **Attachments supported:** Can attach .vcf files directly (base64 encoded)
-- **Setup:** Create account at mailersend.com, verify domain, get API key
-
-**Implementation in Worker:**
-
-```typescript
-// In the form response handler
-const response = await fetch('https://api.mailersend.com/v1/email', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${env.MAILERSEND_API_KEY}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    from: {
-      email: 'noreply@contactswap.app',
-      name: 'ContactSwap',
-    },
-    to: [
-      {
-        email: env.OWNER_EMAIL,
-      },
-    ],
-    subject: `ContactSwap: ${contactName} updated their info`,
-    text: `${contactName} has filled in their contact form.\n\nTheir updated contact file is attached.\n\n—\nContactSwap`,
-    attachments: [
-      {
-        filename: `${contactName}.vcf`,
-        content: vcfBase64, // Base64-encoded VCF content
-        disposition: 'attachment',
-      },
-    ],
-  }),
-});
-```
-
-**Environment variables needed:**
-- `MAILERSEND_API_KEY` — API key from MailerSend dashboard
-- `OWNER_EMAIL` — Your email address (where contacts are sent)
-
-### Deployment
-
-| Unit | Domain | Deployment |
-|------|--------|------------|
-| Frontend | `contactswap.app` | Cloudflare Pages (Git integration) |
-| API | `api.contactswap.app` | Cloudflare Worker (`wrangler deploy`) |
-
-### API ↔ Frontend Communication
-
-- Frontend calls API via `fetch()` to `api.contactswap.app`
-- API returns JSON responses
-- CORS configured to allow `contactswap.app` origin
-- Protected endpoints (config) use API key in header
-
-### API Authentication (MVP)
-
-ContactSwap uses a simple **API key** for protected endpoints. No user accounts, no OAuth — just a shared secret.
-
-#### How It Works
-
-1. **Server-side secret:** An `API_SECRET` environment variable is set in the Worker
-2. **Client sends key:** Frontend includes the key in the `X-API-Key` header for protected requests
-3. **Server validates:** Worker compares the header value against `API_SECRET` using constant-time comparison
-
-#### Protected vs Public Endpoints
-
-| Type | Endpoints | Auth Required |
-|------|-----------|---------------|
-| **Public** | `GET /api/forms/:token`, `POST /api/forms/:token/respond`, `GET /api/forms/:token/qr`, `GET /api/health` | ❌ No |
-| **Protected** | `POST /api/forms`, `GET /api/forms`, `DELETE /api/forms/:id`, `GET /api/config`, `PUT /api/config`, `/api/templates/*` | ✅ Yes |
-
-#### Implementation
-
-```typescript
-// Middleware for protected routes
-function requireAuth(request: Request, env: Env): Response | null {
-  const apiKey = request.headers.get('X-API-Key');
-  
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'Missing API key' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  
-  // Constant-time comparison to prevent timing attacks
-  const encoder = new TextEncoder();
-  const a = encoder.encode(apiKey);
-  const b = encoder.encode(env.API_SECRET);
-  
-  if (a.length !== b.length || !crypto.subtle.timingSafeEqual(a, b)) {
-    return new Response(JSON.stringify({ error: 'Invalid API key' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  
-  return null; // Auth passed
-}
-
-// Usage in route handler
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    
-    // Protected route example
-    if (url.pathname === '/api/forms' && request.method === 'GET') {
-      const authError = requireAuth(request, env);
-      if (authError) return authError;
-      
-      // ... handle request
-    }
-  }
-};
-```
-
-#### Frontend Usage
-
-```typescript
-// In the frontend, store the API key (e.g., in localStorage after initial setup)
-const API_KEY = localStorage.getItem('contactswap_api_key');
-
-// Protected request
-const response = await fetch('https://api.contactswap.app/api/forms', {
-  headers: {
-    'X-API-Key': API_KEY,
-  },
-});
-```
-
-#### Security Notes
-
-- **API key is a shared secret** — treat it like a password
-- **HTTPS only** — never send the key over unencrypted connections
-- **Don't commit to git** — use environment variables
-- **Rotate if compromised** — change `API_SECRET` in Cloudflare dashboard
-- **Frontend storage** — localStorage is acceptable for single-user MVP; the key only protects your own data
-
-#### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `API_SECRET` | The API key that clients must provide for protected endpoints |
-| `MAILERSEND_API_KEY` | MailerSend API key for sending emails |
-| `OWNER_EMAIL` | Your email address (where contacts are sent) |
-
-### Scheduled Cleanup (Cron)
-
-Expired forms and their associated R2 objects need to be cleaned up to stay within free tier limits and maintain data hygiene.
-
-#### Cleanup Job
-
-A **Cloudflare Worker Cron Trigger** runs daily to:
-
-1. Find forms where `expires_at < now()` and `status != 'expired'`
-2. Update their status to `expired`
-3. Delete the associated R2 object (original contact VCF)
-4. Optionally: Delete form rows older than 90 days (hard delete)
-
-#### Cron Schedule
-
-```toml
-# In wrangler.toml
-[triggers]
-crons = ["0 3 * * *"]  # Run at 3:00 AM UTC daily
-```
-
-#### Implementation
-
-```typescript
-export default {
-  // Regular fetch handler
-  async fetch(request: Request, env: Env): Promise<Response> {
-    // ... API routes
-  },
-  
-  // Scheduled handler (cron)
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    const now = new Date().toISOString();
-    
-    // 1. Find expired forms that haven't been marked yet
-    const expiredForms = await env.DB.prepare(`
-      SELECT id, original_contact_url 
-      FROM forms 
-      WHERE expires_at < ? AND status = 'pending'
-    `).bind(now).all();
-    
-    // 2. Mark as expired and delete R2 objects
-    for (const form of expiredForms.results) {
-      // Delete from R2
-      if (form.original_contact_url) {
-        await env.R2.delete(form.original_contact_url);
-      }
-      
-      // Update status
-      await env.DB.prepare(`
-        UPDATE forms SET status = 'expired' WHERE id = ?
-      `).bind(form.id).run();
-    }
-    
-    // 3. Hard delete forms older than 90 days
-    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    await env.DB.prepare(`
-      DELETE FROM forms WHERE created_at < ?
-    `).bind(ninetyDaysAgo).run();
-    
-    console.log(`Cleanup complete: ${expiredForms.results.length} forms expired`);
-  },
-};
-```
-
-#### Cleanup Policy
-
-| Age | Action |
-|-----|--------|
-| 30 days (expires_at) | Mark as `expired`, delete R2 object |
-| 90 days | Hard delete form row from D1 |
-
-This keeps the database lean and ensures R2 storage doesn't grow unbounded.
-
-### Data Model
+All source code lives in a single `src/` directory at the project root:
 
 ```
-Config (single row for MVP)
-├── id (1)
-├── owner_email (your email)
-├── owner_contact_url (R2 path to your .vcf)
-└── updated_at
-
-Template
-├── id (uuid)
-├── name (string, unique)
-├── description (string, optional)
-├── fields (JSON array of field configs)
-├── is_default (boolean — true for built-in templates)
-├── created_at
-└── updated_at
-
-Form
-├── id (uuid)
-├── token (secure random token, 32+ chars)
-├── template_id (uuid, nullable — reference to template used)
-├── field_config (JSON — snapshot of template fields at creation time)
-├── original_contact_url (R2 path to uploaded .vcf)
-├── original_contact_name (for your reference)
-├── status (pending | completed | expired)
-├── created_at
-├── completed_at
-└── expires_at
+contactswap/
+├── src/
+│   ├── api/                    # Cloudflare Worker (backend)
+│   │   ├── routes/             # API route handlers
+│   │   ├── services/           # Business logic
+│   │   ├── lib/                # Utilities (VCF, email, QR)
+│   │   │   ├── vcf/            # VCF parsing and generation
+│   │   │   ├── email/          # MailerSend integration
+│   │   │   └── qr/             # QR code generation
+│   │   ├── middleware/         # Auth, CORS, rate limiting
+│   │   └── index.ts            # Worker entry point
+│   │
+│   ├── app/                    # Next.js App Router (frontend pages)
+│   │   ├── page.tsx            # Landing page
+│   │   ├── layout.tsx          # Root layout
+│   │   ├── form/[token]/       # Form pages (dynamic)
+│   │   └── config/             # Config pages (protected)
+│   │
+│   ├── components/             # React components
+│   │   ├── ui/                 # Base UI components
+│   │   ├── forms/              # Form-specific components
+│   │   └── layout/             # Layout components
+│   │
+│   ├── hooks/                  # Custom React hooks
+│   ├── lib/                    # Frontend utilities
+│   └── types/                  # Shared TypeScript types
+│
+├── migrations/                 # D1 database migrations
+├── public/                     # Static assets
+├── test/                       # Test files
+│   ├── unit/
+│   └── integration/
+├── wrangler.toml               # Cloudflare Worker config
+├── next.config.ts              # Next.js config
+└── package.json
 ```
 
-**Note:** `field_config` is a snapshot — forms don't break if templates are edited/deleted later.
+**Key conventions:**
+- All TypeScript source code is in `src/`
+- API code is in `src/api/` — this is the Cloudflare Worker entry point
+- Frontend pages use Next.js App Router in `src/app/`
+- Shared types are in `src/types/` and imported by both API and frontend
+- Database migrations are in `migrations/` (outside src, as they're SQL files)
+- Static assets are in `public/` (standard Next.js convention)
 
-**Note:** No `FormResponse` table. Form responses are:
-1. Received by the API
-2. Converted to VCF
-3. Emailed to you with attachment
-4. Immediately discarded
-
-The only record of a submission is the `status: completed` flag on the Form (no response data stored).
-
-### API Endpoints
-
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| GET | `/api/health` | Health check — returns status and version | Public |
-| POST | `/api/forms` | Create new form (upload contact + template_id) | 🔒 Protected |
-| GET | `/api/forms` | List all forms (with status filter) | 🔒 Protected |
-| GET | `/api/forms/:token` | Get form data (for rendering the form) | Public |
-| POST | `/api/forms/:token/respond` | Submit form response | Public |
-| DELETE | `/api/forms/:id` | Delete a form and its R2 object | 🔒 Protected |
-| GET | `/api/forms/:token/qr` | Get your contact as QR code | Public |
-| GET | `/api/config` | Get your config | 🔒 Protected |
-| PUT | `/api/config` | Update your contact | 🔒 Protected |
-| GET | `/api/templates` | List all templates | 🔒 Protected |
-| POST | `/api/templates` | Create custom template | 🔒 Protected |
-| GET | `/api/templates/:id` | Get template by ID | 🔒 Protected |
-| PUT | `/api/templates/:id` | Update template | 🔒 Protected |
-| DELETE | `/api/templates/:id` | Delete custom template | 🔒 Protected |
-
-#### Health Check Endpoint
-
-```typescript
-// GET /api/health
-// Returns service status for monitoring and deployment verification
-
-interface HealthResponse {
-  status: 'ok' | 'degraded' | 'down';
-  version: string;
-  timestamp: string;
-}
-
-// Example response:
-{
-  "status": "ok",
-  "version": "1.0.0",
-  "timestamp": "2026-04-16T12:00:00Z"
-}
-```
-
-#### List Forms Endpoint
-
-```typescript
-// GET /api/forms?status=pending&limit=50&offset=0
-// Returns paginated list of forms you've created
-
-interface ListFormsQuery {
-  status?: 'pending' | 'completed' | 'expired';  // Filter by status
-  limit?: number;   // Default: 50, max: 100
-  offset?: number;  // For pagination
-}
-
-interface ListFormsResponse {
-  forms: {
-    id: string;
-    token: string;
-    original_contact_name: string;
-    status: 'pending' | 'completed' | 'expired';
-    created_at: string;
-    completed_at: string | null;
-    expires_at: string;
-  }[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-```
-
-#### Delete Form Endpoint
-
-```typescript
-// DELETE /api/forms/:id
-// Deletes a form and its associated R2 object
-
-// Success: 204 No Content
-// Not found: 404
-// Unauthorized: 401/403
-```
-
-### Pages
-
-| Path | Description |
-|------|-------------|
-| `/` | Landing page — upload contact, pick template, create form |
-| `/form/:token` | Form page (pre-filled, for recipient) |
-| `/form/:token/done` | Confirmation + QR code |
-| `/config` | Your contact management (protected) |
-| `/config/templates` | Template management (protected) |
-
----
-
-## URL Security
-
-### Requirements
-
-URLs are the **only access control** for form data. They must be:
-
-1. **Cryptographically random** — Use `crypto.randomUUID()` or `crypto.getRandomValues()` (never `Math.random()`)
-2. **Sufficient entropy** — Minimum 128 bits (e.g., 32 hex chars or UUID v4)
-3. **Not enumerable** — No sequential IDs, no predictable patterns
-4. **Not logged** — Tokens should not appear in server logs or analytics
-
-### Token Format
-
-```
-Format: UUID v4 (36 chars) or hex string (32 chars)
-Example: 7f3a9c2e-4b1d-4f8a-9e6c-3d2a1b0c9e8f
-Example: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
-
-URL: https://contactswap.app/form/7f3a9c2e-4b1d-4f8a-9e6c-3d2a1b0c9e8f
-```
-
-### Threat Model
-
-| Threat | Mitigation |
-|--------|------------|
-| Brute-force guessing | 128-bit tokens = 2^128 possibilities (infeasible) |
-| URL enumeration | No sequential IDs, no patterns |
-| Shoulder surfing | Tokens are long, hard to memorize |
-| Log exposure | Don't log tokens; use form IDs for debugging |
-| Referer leakage | Set `Referrer-Policy: no-referrer` |
-
-### Implementation
-
-```typescript
-// ✅ Correct: cryptographically secure
-const token = crypto.randomUUID();
-
-// ❌ Wrong: predictable
-const token = Math.random().toString(36);
-const token = Date.now().toString();
-const token = autoIncrementId.toString();
-```
-
----
-
+````
 ## Contact Handling (VCF)
 
 ### VCF Standard: vCard 3.0 (RFC 2426)
