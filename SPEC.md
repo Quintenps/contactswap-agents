@@ -72,6 +72,7 @@ Each field has a VCF mapping and can be marked as required or optional per templ
 | Website | `URL` | |
 | Birthday | `BDAY` | Format: YYYY-MM-DD |
 | Notes | `NOTE` | Free text |
+| Photo | `PHOTO` | Resized to 200x200, JPEG, base64 encoded |
 
 ### Template Data Model
 
@@ -502,106 +503,261 @@ const token = autoIncrementId.toString();
 
 ## Contact Handling (VCF)
 
+### VCF Standard: vCard 3.0 (RFC 2426)
+
+ContactSwap uses **vCard 3.0** as the standard format for all contact files. This version offers the best balance of compatibility and features:
+
+| Consideration | vCard 3.0 |
+|---------------|-----------|
+| **Compatibility** | Universal — iOS, Android, macOS, Windows, Outlook, Gmail |
+| **Encoding** | UTF-8 (international names supported) |
+| **File size** | Compact (QR-code friendly) |
+| **Specification** | RFC 2426 (stable, well-documented) |
+
+**Why not vCard 4.0?** While newer, vCard 4.0 has inconsistent support across platforms (iOS quirks, some Android apps don't fully parse it). The added features aren't needed for ContactSwap's use case.
+
+**Example vCard 3.0 output:**
+
+```
+BEGIN:VCARD
+VERSION:3.0
+FN:Jane Doe
+N:Doe;Jane;;;
+TEL;TYPE=CELL:+1-555-123-4567
+TEL;TYPE=WORK:+1-555-987-6543
+EMAIL;TYPE=HOME:jane@example.com
+EMAIL;TYPE=WORK:jane.doe@company.com
+ADR;TYPE=HOME:;;123 Main St;Springfield;IL;62701;USA
+ORG:Acme Corp
+TITLE:Software Engineer
+URL:https://janedoe.com
+BDAY:1990-05-15
+NOTE:Met at conference 2024
+END:VCARD
+```
+
 ### Parsing (Upload)
 
+When parsing uploaded contacts, accept **vCard 2.1, 3.0, and 4.0** for maximum compatibility — users may export from various sources. Normalize all input to our internal field model.
+
 Extract these fields from uploaded contact (.vcf):
-- `FN` — Full name
+- `FN` — Full name (required)
 - `N` — Structured name (last;first;middle;prefix;suffix)
-- `TEL` — Phone numbers (with type: cell, work, home)
-- `EMAIL` — Email addresses (with type)
-- `ADR` — Addresses (with type)
-- `ORG` — Organization
+- `TEL` — Phone numbers (with type: CELL, WORK, HOME)
+- `EMAIL` — Email addresses (with type: HOME, WORK)
+- `ADR` — Addresses (with type: HOME, WORK)
+- `ORG` — Organization/Company
 - `TITLE` — Job title
 - `URL` — Website
+- `BDAY` — Birthday (normalize to YYYY-MM-DD)
 - `NOTE` — Notes
-- `PHOTO` — Photo (base64 or URL)
+- `PHOTO` — Photo (strip on import to keep files small)
+
+**Parsing rules:**
+- Handle both `TYPE=WORK` (3.0) and `TYPE=work` (case-insensitive)
+- Handle both `TEL;TYPE=CELL` and `TEL;CELL` (2.1 style)
+- Decode quoted-printable encoding (common in 2.1)
+- Normalize line endings (CRLF per spec, but accept LF)
+- Skip unknown/unsupported properties gracefully
 
 ### Generation (from Form Response)
 
-Generate valid VCF 3.0 format from form response. Ensure:
-- Proper escaping of special characters
-- Multi-value fields (multiple phones, emails)
-- Photo encoding (base64 inline or URL reference)
+Always generate **vCard 3.0** format. Ensure:
+
+- **Line folding:** Lines > 75 chars must be folded (space continuation)
+- **Escaping:** Escape commas, semicolons, backslashes in values
+- **UTF-8:** Use UTF-8 encoding (no quoted-printable needed in 3.0)
+- **Line endings:** CRLF (`\r\n`) per RFC
+- **Required fields:** `BEGIN`, `VERSION`, `FN`, `N`, `END`
+
+**Generation template:**
+
+```typescript
+function generateVCard(contact: Contact): string {
+  const lines: string[] = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${escape(contact.fullName)}`,
+    `N:${escape(contact.lastName)};${escape(contact.firstName)};;;`,
+  ];
+  
+  // Add optional fields if present
+  if (contact.cellPhone) lines.push(`TEL;TYPE=CELL:${contact.cellPhone}`);
+  if (contact.workPhone) lines.push(`TEL;TYPE=WORK:${contact.workPhone}`);
+  if (contact.homePhone) lines.push(`TEL;TYPE=HOME:${contact.homePhone}`);
+  if (contact.personalEmail) lines.push(`EMAIL;TYPE=HOME:${escape(contact.personalEmail)}`);
+  if (contact.workEmail) lines.push(`EMAIL;TYPE=WORK:${escape(contact.workEmail)}`);
+  if (contact.homeAddress) lines.push(`ADR;TYPE=HOME:;;${escapeAddress(contact.homeAddress)}`);
+  if (contact.workAddress) lines.push(`ADR;TYPE=WORK:;;${escapeAddress(contact.workAddress)}`);
+  if (contact.company) lines.push(`ORG:${escape(contact.company)}`);
+  if (contact.jobTitle) lines.push(`TITLE:${escape(contact.jobTitle)}`);
+  if (contact.website) lines.push(`URL:${contact.website}`);
+  if (contact.birthday) lines.push(`BDAY:${contact.birthday}`); // YYYY-MM-DD
+  if (contact.notes) lines.push(`NOTE:${escape(contact.notes)}`);
+  
+  lines.push('END:VCARD');
+  return lines.join('\r\n');
+}
+
+function escape(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n');
+}
+```
+
+---
+
+## Photo Handling
+
+Photos require special handling because vCard embeds them as base64-encoded data, which can make files very large.
+
+#### Constraints
+
+| Constraint | Limit | Reason |
+|------------|-------|--------|
+| **vCard file size** | Target < 100KB | Email deliverability, fast parsing |
+| **Email attachment** | Max 25MB (MailerSend) | Service limit |
+| **R2 storage** | 10GB free tier | Cost control |
+| **Original photo** | Often 2-10MB | Phone cameras are high-res |
+| **Base64 overhead** | +33% size | Encoding bloat |
+
+#### Processing Pipeline
+
+When a form responder uploads a photo:
+
+```
+[Upload Photo] → [Validate] → [Resize] → [Compress] → [Base64 Encode] → [Embed in VCF]
+   (any size)     (type check)  (200x200)   (JPEG 80%)    (~30KB base64)     (PHOTO property)
+```
+
+**Step 1: Validate**
+- Accept: JPEG, PNG, WebP, HEIC
+- Reject: Files > 10MB (prevent abuse)
+- Reject: Non-image files
+
+**Step 2: Resize**
+- Max dimensions: **200x200 pixels** (square, cover crop)
+- Maintain aspect ratio, crop to square from center
+- This is standard contact photo size (matches iOS/Android contact thumbnails)
+
+**Step 3: Compress**
+- Output format: **JPEG** (best compatibility)
+- Quality: **80%** (good balance of quality vs size)
+- Strip EXIF metadata (privacy + smaller file)
+- Target output: **10-30KB** after compression
+
+**Step 4: Base64 Encode**
+- Encode compressed JPEG as base64
+- ~30KB image → ~40KB base64 string
+- This keeps total VCF size reasonable
+
+**Step 5: Embed in vCard**
+- Use vCard 3.0 `PHOTO` property with inline base64:
+
+```
+PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRgABAQEASABIAAD/4gIc...
+```
+
+#### Implementation
+
+Photo processing happens **server-side in the Worker** using Cloudflare's Image Resizing or a WASM-based library:
+
+```typescript
+async function processPhoto(file: File): Promise<string | null> {
+  // Validate
+  if (file.size > 10 * 1024 * 1024) return null; // 10MB limit
+  if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic'].includes(file.type)) {
+    return null;
+  }
+  
+  // Resize and compress using Cloudflare Image Resizing
+  // or a WASM library like squoosh/libvips
+  const resized = await resizeImage(file, {
+    width: 200,
+    height: 200,
+    fit: 'cover',
+    format: 'jpeg',
+    quality: 80,
+  });
+  
+  // Convert to base64
+  const buffer = await resized.arrayBuffer();
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  
+  return base64;
+}
+
+// In vCard generation
+if (contact.photoBase64) {
+  // Line folding required for long base64 strings (75 char lines)
+  const foldedPhoto = foldLine(`PHOTO;ENCODING=b;TYPE=JPEG:${contact.photoBase64}`);
+  lines.push(foldedPhoto);
+}
+
+function foldLine(line: string, maxLength = 75): string {
+  if (line.length <= maxLength) return line;
+  const chunks: string[] = [];
+  for (let i = 0; i < line.length; i += maxLength) {
+    chunks.push(line.slice(i, i + maxLength));
+  }
+  return chunks.join('\r\n '); // Space prefix for continuation lines
+}
+```
+
+#### Form UI for Photo Upload
+
+On the form, the photo field should:
+- Show a circular preview (contact photo style)
+- Allow drag-and-drop or click to upload
+- Show upload progress
+- Display "Photo will be resized to 200x200" hint
+- Allow removing/replacing the photo
+- Pre-fill with existing photo from uploaded contact (if any)
+
+#### Photo in Parsing (Upload)
+
+When you upload a contact that already has a photo:
+- **Strip the photo** — Don't pre-fill the form with it
+- Reason: The recipient should provide their own current photo
+- The original contact's photo is likely outdated (that's why you're asking for updates!)
+
+#### Size Budget
+
+| Component | Size |
+|-----------|------|
+| vCard without photo | ~1-2KB |
+| Photo (200x200 JPEG 80%) | ~10-30KB |
+| Photo base64 encoded | ~15-40KB |
+| **Total vCard with photo** | **~20-50KB** ✅ |
+
+This keeps the VCF well under email attachment limits and fast to parse.
 
 ### QR Code
 
-- Encode your contact as QR code
-- Use `MECARD` or direct VCF format depending on size
-- If contact too large for QR, encode a download URL instead
+- Encode your contact as QR code using **MECARD format** (more compact than vCard)
+- MECARD is widely supported by phone cameras for contact recognition
+- If contact data exceeds QR capacity (~2KB), encode a download URL instead
 
----
+**MECARD format example:**
+```
+MECARD:N:Doe,Jane;TEL:+15551234567;EMAIL:jane@example.com;URL:https://janedoe.com;;
+```
 
-## Security & Privacy
-
-- **No response data retained** — Form submissions are processed in-memory, emailed to you, then immediately discarded. Nothing stored.
-- **No accounts required for recipients** — Recipients just fill a form
-- **Single-user MVP** — You are the only requester (no auth needed for MVP, or simple API key)
-- **Cryptographically secure URLs** — 128-bit minimum entropy (see URL Security section)
-- **Form metadata only** — D1 stores form metadata (token, status, expiry) but never the submitted contact data
-- **Original contact deleted on expiry** — After 30 days, the uploaded contact is deleted from R2
-- **No tracking** — No analytics cookies, no third-party scripts
-- **HTTPS only** — All traffic encrypted
-- **Rate limiting** — Prevent abuse of form creation and submission
-- **Referrer policy** — `no-referrer` to prevent token leakage
-
----
-
-## Open Questions
-
-> Refine these as you develop the spec further.
-
-1. ~~**Authentication for requesters?**~~ — MVP: single user (you). Simple API key or env-based auth.
-2. ~~**Form expiration default?**~~ — 30 days. Expired forms show friendly error.
-3. ~~**Multiple contacts per form?**~~ — MVP: one contact per form.
-4. ~~**Photo handling?**~~ — Strip photos from VCFs to keep files small and stay within free tier.
-5. ~~**Delivery method priority?**~~ — Email only. Simple plain-text email with .vcf attachment. No download link fallback needed.
-6. ~~**Form customization?**~~ — Yes. Template-based: you pick a template at form creation, recipient sees only those fields. See Templates section.
-7. ~~**Internationalization?**~~ — Yes. Support non-Latin names, E.164 phone formats, global addresses.
-
----
-
-## Success Metrics
-
-| Metric | Target |
-|--------|--------|
-| Form completion rate | > 60% of opened forms result in response |
-| Time to complete form | < 2 minutes average |
-| Contact parse success rate | > 95% of uploaded contacts parse correctly |
-| Email delivery rate | > 98% of generated contacts delivered successfully |
-
----
-
-## Milestones
-
-### M1: Core Flow (Week 1-2)
-- [ ] Contact parsing (upload → extract fields)
-- [ ] Form creation (fields → pre-filled form)
-- [ ] Form response handling (response → contact generation)
-- [ ] Secure URL generation (128-bit tokens)
-
-### M2: Delivery (Week 2-3)
-- [ ] Email delivery of generated contact
-- [ ] QR code generation for your contact
-- [ ] Confirmation page with QR display
-- [ ] Your contact configuration page
-
-### M3: Polish (Week 3-4)
-- [ ] Landing page UI
-- [ ] Form UI/UX refinement
-- [ ] Error handling and validation
-- [ ] Rate limiting and security hardening
-
-### M4: Launch (Week 4+)
-- [ ] Deploy to production
-- [ ] Domain setup (contactswap.app or similar)
-- [ ] Monitoring and alerting
-- [ ] Documentation
+**QR code decision logic:**
+1. Try MECARD with essential fields (name, phone, email)
+2. If fits in QR (version ≤ 10, ~300 chars) → use MECARD
+3. If too large → encode download URL: `https://contactswap.app/api/config/contact.vcf`
 
 ---
 
 ## References
 
-- [VCF/vCard Specification (RFC 6350)](https://datatracker.ietf.org/doc/html/rfc6350)
+- [vCard 3.0 Specification (RFC 2426)](https://datatracker.ietf.org/doc/html/rfc2426) — ContactSwap output format
+- [vCard 4.0 Specification (RFC 6350)](https://datatracker.ietf.org/doc/html/rfc6350) — Accepted for parsing input
+- [MECARD Format](https://en.wikipedia.org/wiki/MeCard_(QR_code)) — QR code contact encoding
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Cloudflare D1 Docs](https://developers.cloudflare.com/d1/)
 - [Cloudflare R2 Docs](https://developers.cloudflare.com/r2/)
