@@ -329,55 +329,58 @@ ContactSwap is split into two deployable units:
 
 #### Project Structure
 
-All source code lives in a single `src/` directory at the project root:
+All source code lives in `src/` as a monorepo with three packages:
 
 ```
 contactswap/
 ├── src/
-│   ├── api/                    # Cloudflare Worker (backend)
-│   │   ├── routes/             # API route handlers
-│   │   ├── services/           # Business logic
-│   │   ├── lib/                # Utilities (VCF, email, QR)
-│   │   │   ├── vcf/            # VCF parsing and generation
-│   │   │   ├── email/          # MailerSend integration
-│   │   │   └── qr/             # QR code generation
-│   │   ├── middleware/         # Auth, CORS, rate limiting
-│   │   └── index.ts            # Worker entry point
+│   ├── api/                    # @contactswap/api - Cloudflare Worker
+│   │   ├── src/
+│   │   │   ├── routes/         # API route handlers
+│   │   │   ├── services/       # Business logic
+│   │   │   ├── middleware/     # Auth, CORS, rate limiting
+│   │   │   ├── lib/            # Utilities (VCF, email, QR)
+│   │   │   ├── types/          # API-specific types
+│   │   │   └── index.ts        # Worker entry point
+│   │   ├── migrations/         # D1 database migrations
+│   │   ├── wrangler.toml       # Cloudflare Worker config
+│   │   ├── package.json
+│   │   └── tsconfig.json
 │   │
-│   ├── app/                    # Next.js App Router (frontend pages)
-│   │   ├── page.tsx            # Landing page
-│   │   ├── layout.tsx          # Root layout
-│   │   ├── form/[token]/       # Form pages (dynamic)
-│   │   └── config/             # Config pages (protected)
+│   ├── frontend/               # @contactswap/frontend - Next.js
+│   │   ├── src/
+│   │   │   ├── app/            # Next.js App Router pages
+│   │   │   │   ├── page.tsx    # Landing page
+│   │   │   │   ├── layout.tsx  # Root layout
+│   │   │   │   ├── form/[token]/ # Form pages (dynamic)
+│   │   │   │   └── config/     # Config pages (protected)
+│   │   │   ├── components/     # React components
+│   │   │   ├── hooks/          # Custom React hooks
+│   │   │   └── lib/            # Frontend utilities
+│   │   ├── public/             # Static assets
+│   │   ├── next.config.ts      # Next.js config
+│   │   ├── package.json
+│   │   └── tsconfig.json
 │   │
-│   ├── components/             # React components
-│   │   ├── ui/                 # Base UI components
-│   │   ├── forms/              # Form-specific components
-│   │   └── layout/             # Layout components
-│   │
-│   ├── hooks/                  # Custom React hooks
-│   ├── lib/                    # Frontend utilities
-│   └── types/                  # Shared TypeScript types
+│   └── shared/                 # @contactswap/shared - Shared types
+│       ├── src/
+│       │   ├── types/          # Domain types (Contact, Form, Template)
+│       │   └── index.ts        # Package exports
+│       ├── package.json
+│       └── tsconfig.json
 │
-├── migrations/                 # D1 database migrations
-├── public/                     # Static assets
-├── test/                       # Test files
-│   ├── unit/
-│   └── integration/
-├── wrangler.toml               # Cloudflare Worker config
-├── next.config.ts              # Next.js config
-└── package.json
+├── package.json                # Root package.json (npm workspaces)
+└── README.md
 ```
 
 **Key conventions:**
-- All TypeScript source code is in `src/`
-- API code is in `src/api/` — this is the Cloudflare Worker entry point
-- Frontend pages use Next.js App Router in `src/app/`
-- Shared types are in `src/types/` and imported by both API and frontend
-- Database migrations are in `migrations/` (outside src, as they're SQL files)
-- Static assets are in `public/` (standard Next.js convention)
+- **Monorepo with npm workspaces** — three packages in `src/`
+- **Shared types** — `@contactswap/shared` is imported by both API and frontend
+- **Package references** — TypeScript project references for type checking
+- **Independent configs** — each package has its own `tsconfig.json` and `package.json`
 
 ````
+
 ## Contact Handling (VCF)
 
 ### VCF Standard: vCard 3.0 (RFC 2426)
