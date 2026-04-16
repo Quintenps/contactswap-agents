@@ -25,5 +25,14 @@
 - **Project:** contactswap-agents
 - **Created:** 2026-04-16
 - **Project Description:** Pending — repo scaffold is initialized and the team is being set up.
-- **Stack:** TypeScript emphasis requested; broader stack not specified yet.
+- **Stack:** Cloudflare (Workers, D1, KV, R2, Queues, Email Service), TypeScript
 - **Casting Universe:** Breaking Bad
+
+## Skills
+
+| Skill | Path | Used By |
+|-------|------|---------|
+| Cloudflare Platform | `.squad/skills/cloudflare/SKILL.md` | Walter, Gus |
+| Workers Best Practices | `.squad/skills/workers-best-practices/SKILL.md` | Walter, Jesse, Gus, Hank |
+| Wrangler CLI | `.squad/skills/wrangler/SKILL.md` | Walter, Jesse, Gus, Hank |
+| Email Service | `.squad/skills/cloudflare-email-service/SKILL.md` | Walter, Gus |
