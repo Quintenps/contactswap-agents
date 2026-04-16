@@ -6,19 +6,19 @@ How to decide who handles what.
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| TypeScript architecture & implementation | Trinity | Type modeling, tsconfig changes, SDK typing, refactors to stronger types |
-| Backend services & integrations | Morpheus | APIs, services, server logic, persistence, background jobs |
-| Test strategy & verification | Switch | Write tests, find edge cases, verify fixes |
-| Code review | Neo | Review PRs, check quality, suggest improvements |
-| Testing | Switch | Regression checks, test plans, release confidence |
-| Scope & priorities | Neo | What to build next, trade-offs, decisions |
+| TypeScript architecture & implementation | Jesse | Type modeling, tsconfig changes, SDK typing, refactors to stronger types |
+| Backend services & integrations | Gus | APIs, services, server logic, persistence, background jobs |
+| Test strategy & verification | Hank | Write tests, find edge cases, verify fixes |
+| Code review | Walter | Review PRs, check quality, suggest improvements |
+| Testing | Hank | Regression checks, test plans, release confidence |
+| Scope & priorities | Walter | What to build next, trade-offs, decisions |
 | Session logging | Scribe | Automatic — never needs routing |
 
 ## Issue Routing
 
 | Label | Action | Who |
 |-------|--------|-----|
-| `squad` | Triage: analyze issue, assign `squad:{member}` label | Neo |
+| `squad` | Triage: analyze issue, assign `squad:{member}` label | Walter |
 | `squad:{name}` | Pick up issue and complete the work | Named member |
 
 ### How Issue Assignment Works
