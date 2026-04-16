@@ -294,22 +294,22 @@ After submitting the form, the recipient sees:
 ContactSwap is split into two deployable units:
 
 1. **API** — Cloudflare Worker handling all backend logic
-2. **Frontend** — Cloudflare Pages serving the web application
+2. **Frontend** — Next.js with static export, deployed on Cloudflare Pages
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Cloudflare Edge                          │
 ├─────────────────────────────┬───────────────────────────────┤
-│   Frontend (Pages)          │   API (Worker)                │
+│   Frontend (Next.js)        │   API (Worker)                │
 │   contactswap.app           │   api.contactswap.app         │
 │                             │                               │
 │   • Landing page            │   • Form CRUD                 │
 │   • Form UI                 │   • Contact parsing           │
 │   • Confirmation page       │   • Contact generation        │
 │   • Config page             │   • Email delivery            │
-│                             │   • QR code generation        │
+│   • Static assets (HTML/JS) │   • QR code generation        │
 │                             │                               │
-│   Static assets (HTML/JS)   │   ┌─────────┐ ┌─────────┐    │
+│                             │   ┌─────────┐ ┌─────────┐    │
 │                             │   │   D1    │ │   R2    │    │
 │                             │   │ (SQLite)│ │ (Files) │    │
 │                             │   └─────────┘ └─────────┘    │
@@ -321,11 +321,66 @@ ContactSwap is split into two deployable units:
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | **API** | Cloudflare Worker | Backend logic, API endpoints |
-| **Frontend** | Cloudflare Pages | Static web app (SPA or SSR) |
+| **Frontend** | Next.js (Static Export) → Cloudflare Pages | Static web app with React |
 | **Database** | Cloudflare D1 (SQLite) | Form and template metadata |
 | **File Storage** | Cloudflare R2 | Contacts (.vcf), photos |
 | **Email** | MailerSend | Send generated contacts via email |
 | **Language** | TypeScript | Both API and frontend |
+
+#### Frontend (Next.js Static Export)
+
+The frontend uses **Next.js** with static export (`output: 'export'`) for deployment to Cloudflare Pages:
+
+- **Framework:** Next.js 14+ with App Router
+- **Export mode:** Static (`next.config.js` → `output: 'export'`)
+- **Styling:** Tailwind CSS (recommended) or CSS Modules
+- **Deployment:** `next build` produces static files in `out/` → deploy to Cloudflare Pages
+
+**Why Next.js Static Export?**
+- React-based with excellent DX (file-based routing, TypeScript support)
+- Static export = no server required, perfect for Cloudflare Pages free tier
+- Built-in image optimization (with static loader)
+- Easy to add dynamic features later if needed
+
+**Configuration:**
+
+```typescript
+// next.config.ts
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true, // Required for static export
+  },
+};
+
+export default nextConfig;
+```
+
+**Build & Deploy:**
+
+```bash
+# Build static files
+cd frontend
+npm run build
+
+# Output in frontend/out/ — deploy to Cloudflare Pages
+# Cloudflare Pages build command: npm run build
+# Cloudflare Pages output directory: out
+```
+
+**Limitations of Static Export:**
+- No server-side rendering (SSR) or API routes in Next.js — all API calls go to the Worker
+- No `getServerSideProps` — use `getStaticProps` or client-side fetching
+- Dynamic routes must use `generateStaticParams` or be handled client-side
+- Form pages (`/form/[token]`) fetch data client-side from the API
+
+**Route Handling:**
+- Static pages (`/`, `/config`, `/config/templates`) — pre-rendered at build time
+- Dynamic pages (`/form/[token]`, `/form/[token]/done`) — shell rendered at build, data fetched client-side
+
 
 #### Email Delivery (MailerSend)
 
