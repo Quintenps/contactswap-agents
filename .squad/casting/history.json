@@ -1,0 +1,22 @@
+{
+  "universe_usage_history": [
+    {
+      "universe": "The Matrix",
+      "assignment_id": "contactswap-agents-2026-04-16-init",
+      "used_at": "2026-04-16T14:12:21Z"
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "contactswap-agents-2026-04-16-init": {
+      "universe": "The Matrix",
+      "agents": {
+        "lead": "Neo",
+        "typescript-specialist": "Trinity",
+        "backend-dev": "Morpheus",
+        "tester": "Switch"
+      },
+      "created_at": "2026-04-16T14:12:21Z"
+    }
+  }
+}
+
