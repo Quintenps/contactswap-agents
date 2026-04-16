@@ -22,11 +22,12 @@
 ## Project Context
 
 - **Owner:** Quinten Peels
-- **Project:** contactswap-agents
+- **Project:** ContactSwap
 - **Created:** 2026-04-16
-- **Project Description:** Pending — repo scaffold is initialized and the team is being set up.
+- **Project Description:** A service to exchange and update contact information. Users upload a VCF, get a unique URL to share, the contact fills a pre-filled form, and both parties receive updated contact info (requester via email, contact via QR code).
 - **Stack:** Cloudflare (Workers, D1, KV, R2, Queues, Email Service), TypeScript
 - **Casting Universe:** Breaking Bad
+- **Spec:** `SPEC.md`
 
 ## Skills
 
