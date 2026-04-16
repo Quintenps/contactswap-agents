@@ -133,15 +133,15 @@ When you upload a contact to create a form:
 
 ### Cost Assumptions
 
-Target: **$0/month** using Cloudflare free tiers.
+Target: **$0/month** using free tiers.
 
 | Service | Free Tier Limit | Expected Usage | Fits? |
 |---------|-----------------|----------------|-------|
-| **Workers** | 100k requests/day | ~100 forms/month | ✅ |
-| **Pages** | Unlimited requests | Static frontend | ✅ |
-| **D1** | 5M rows read/day, 100k writes/day | Minimal DB ops | ✅ |
-| **R2** | 10GB storage, 10M reads/month | Small VCF files (~1KB each) | ✅ |
-| **Email Sending** | 100 emails/day | ~100 forms/month | ✅ |
+| **Cloudflare Workers** | 100k requests/day | ~100 forms/month | ✅ |
+| **Cloudflare Pages** | Unlimited requests | Static frontend | ✅ |
+| **Cloudflare D1** | 5M rows read/day, 100k writes/day | Minimal DB ops | ✅ |
+| **Cloudflare R2** | 10GB storage, 10M reads/month | Small VCF files (~1KB each) | ✅ |
+| **MailerSend (email)** | 3,000 emails/month | ~100 forms/month | ✅ |
 
 **Design for free tier:**
 - Keep VCF files small (strip large photos if needed)
@@ -321,10 +321,56 @@ ContactSwap is split into two deployable units:
 |-----------|------------|---------|
 | **API** | Cloudflare Worker | Backend logic, API endpoints |
 | **Frontend** | Cloudflare Pages | Static web app (SPA or SSR) |
-| **Database** | Cloudflare D1 (SQLite) | Form and response metadata |
+| **Database** | Cloudflare D1 (SQLite) | Form and template metadata |
 | **File Storage** | Cloudflare R2 | Contacts (.vcf), photos |
-| **Email** | Cloudflare Email Service | Send generated contacts |
+| **Email** | MailerSend | Send generated contacts via email |
 | **Language** | TypeScript | Both API and frontend |
+
+#### Email Delivery (MailerSend)
+
+For outbound email from Workers, we use **MailerSend**:
+
+- **Free tier:** 3,000 emails/month (fits ~100 forms/month target)
+- **Workers-compatible:** Simple HTTP API, works in edge runtime
+- **Attachments supported:** Can attach .vcf files directly (base64 encoded)
+- **Setup:** Create account at mailersend.com, verify domain, get API key
+
+**Implementation in Worker:**
+
+```typescript
+// In the form response handler
+const response = await fetch('https://api.mailersend.com/v1/email', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${env.MAILERSEND_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    from: {
+      email: 'noreply@contactswap.app',
+      name: 'ContactSwap',
+    },
+    to: [
+      {
+        email: env.OWNER_EMAIL,
+      },
+    ],
+    subject: `ContactSwap: ${contactName} updated their info`,
+    text: `${contactName} has filled in their contact form.\n\nTheir updated contact file is attached.\n\n—\nContactSwap`,
+    attachments: [
+      {
+        filename: `${contactName}.vcf`,
+        content: vcfBase64, // Base64-encoded VCF content
+        disposition: 'attachment',
+      },
+    ],
+  }),
+});
+```
+
+**Environment variables needed:**
+- `MAILERSEND_API_KEY` — API key from MailerSend dashboard
+- `OWNER_EMAIL` — Your email address (where contacts are sent)
 
 ### Deployment
 
@@ -558,4 +604,5 @@ Generate valid VCF 3.0 format from form response. Ensure:
 - [VCF/vCard Specification (RFC 6350)](https://datatracker.ietf.org/doc/html/rfc6350)
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Cloudflare D1 Docs](https://developers.cloudflare.com/d1/)
-- [Cloudflare Email Service](https://developers.cloudflare.com/email-routing/)
+- [Cloudflare R2 Docs](https://developers.cloudflare.com/r2/)
+- [MailerSend API Docs](https://developers.mailersend.com/)
