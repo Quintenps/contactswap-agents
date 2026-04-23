@@ -1,0 +1,68 @@
+@baseUrl = http://localhost:8787
+@apiSecret = change-me
+@templateId = 550e8400-e29b-41d4-a716-446655440000
+
+### Create form from VCF (happy path shape)
+# Note: this succeeds only when:
+# - x-api-secret matches API_SECRET
+# - templateId exists in D1 templates table
+POST {{baseUrl}}/v1/forms
+x-api-secret: {{apiSecret}}
+Content-Type: multipart/form-data; boundary=----ContactSwapBoundary
+
+------ContactSwapBoundary
+Content-Disposition: form-data; name="templateId"
+
+{{templateId}}
+------ContactSwapBoundary
+Content-Disposition: form-data; name="vcf"; filename="contact.vcf"
+Content-Type: text/vcard
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Jane Doe
+N:Doe;Jane;;;
+EMAIL;TYPE=WORK:jane.doe@company.com
+EMAIL;TYPE=HOME:jane@example.com
+TEL;TYPE=CELL:+15551234567
+END:VCARD
+------ContactSwapBoundary--
+
+### Create form without API secret (error path: 401)
+POST {{baseUrl}}/v1/forms
+Content-Type: multipart/form-data; boundary=----ContactSwapBoundary
+
+------ContactSwapBoundary
+Content-Disposition: form-data; name="templateId"
+
+{{templateId}}
+------ContactSwapBoundary
+Content-Disposition: form-data; name="vcf"; filename="contact.vcf"
+Content-Type: text/vcard
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Jane Doe
+N:Doe;Jane;;;
+END:VCARD
+------ContactSwapBoundary--
+
+### Create form with invalid templateId (error path: 422)
+POST {{baseUrl}}/v1/forms
+x-api-secret: {{apiSecret}}
+Content-Type: multipart/form-data; boundary=----ContactSwapBoundary
+
+------ContactSwapBoundary
+Content-Disposition: form-data; name="templateId"
+
+not-a-uuid
+------ContactSwapBoundary
+Content-Disposition: form-data; name="vcf"; filename="contact.vcf"
+Content-Type: text/vcard
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Jane Doe
+N:Doe;Jane;;;
+END:VCARD
+------ContactSwapBoundary--

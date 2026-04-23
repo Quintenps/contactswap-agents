@@ -379,6 +379,228 @@ contactswap/
 - **Package references** — TypeScript project references for type checking
 - **Independent configs** — each package has its own `tsconfig.json` and `package.json`
 
+## API Implementation
+
+The API implementation is standardized on Hono for Cloudflare Workers. The rules in this section are mandatory for all endpoints and middleware.
+
+### Framework: Hono (Required)
+
+- Use `hono` as the HTTP framework for all API routes.
+- Do not build endpoints directly with raw `fetch` switch statements once Hono bootstrapping is in place.
+- Use `@hono/zod-validator` for request validation.
+
+```ts
+import { Hono } from 'hono';
+import type { Env as WorkerEnv } from './types/env';
+
+type AppEnv = {
+  Bindings: WorkerEnv;
+};
+
+const app = new Hono<AppEnv>();
+```
+
+### Entry Point Pattern (Cloudflare Worker Export)
+
+- The Worker entry point must export the Hono app as default.
+- Keep `scheduled` as a named export when cron behavior is required.
+- Do not wrap Hono with an additional custom `fetch` dispatcher.
+
+```ts
+// src/api/src/index.ts
+import { Hono } from 'hono';
+import type { Env as WorkerEnv } from './types/env';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { healthRoutes } from './routes/health';
+import { formRoutes } from './routes/forms';
+import { templateRoutes } from './routes/templates';
+
+type AppEnv = { Bindings: WorkerEnv };
+
+const app = new Hono<AppEnv>();
+
+app.use('*', logger());
+app.use('/v1/*', cors({
+  origin: ['https://contactswap.app'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+}));
+
+app.route('/health', healthRoutes);
+app.route('/v1/forms', formRoutes);
+app.route('/v1/templates', templateRoutes);
+
+app.notFound((c) => c.json({ error: 'Not Found' }, 404));
+
+app.onError((err, c) => {
+  console.error('Unhandled API error', err);
+  return c.json({ error: 'Internal Server Error' }, 500);
+});
+
+export default app;
+
+export async function scheduled(
+  event: ScheduledEvent,
+  env: WorkerEnv,
+  ctx: ExecutionContext,
+): Promise<void> {
+  // Cron handlers live here.
+}
+```
+
+### Route Organization (Required Structure)
+
+- Put each domain route in `src/api/src/routes/`.
+- One file per route domain (for example: `forms.ts`, `templates.ts`, `health.ts`).
+- Export a sub-app or router per file and mount it in `index.ts` with `app.route()`.
+- Version business endpoints under `/v1/...`.
+
+```ts
+// src/api/src/routes/forms.ts
+import { Hono } from 'hono';
+import type { Env as WorkerEnv } from '../types/env';
+
+type AppEnv = { Bindings: WorkerEnv };
+
+export const formRoutes = new Hono<AppEnv>();
+
+formRoutes.get('/', async (c) => {
+  const rows = await c.env.DB.prepare('SELECT id, token FROM forms ORDER BY created_at DESC LIMIT 50').all();
+  return c.json({ forms: rows.results }, 200);
+});
+```
+
+### Middleware (Built-in + Custom)
+
+- Use `logger()` globally (`app.use('*', logger())`).
+- Use `cors()` on public API prefixes (for this project: `/v1/*`).
+- Register custom middleware in `src/api/src/middleware/` and apply it with explicit scope.
+- Middleware must fail closed with explicit status codes/messages.
+
+```ts
+// src/api/src/middleware/require-api-secret.ts
+import type { MiddlewareHandler } from 'hono';
+import type { Env as WorkerEnv } from '../types/env';
+
+type AppEnv = { Bindings: WorkerEnv };
+
+export const requireApiSecret: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const incoming = c.req.header('x-api-secret');
+  if (!incoming || incoming !== c.env.API_SECRET) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  await next();
+};
+```
+
+### Typed Bindings via `c.env` (Required)
+
+- The binding source of truth is `src/api/src/types/env.ts`.
+- Handlers and middleware must access Cloudflare resources via `c.env` only.
+- Do not use untyped `any` access for bindings.
+
+Current binding contract:
+- `c.env.DB` (`D1Database`)
+- `c.env.R2` (`R2Bucket`)
+- `c.env.API_SECRET` (`string`)
+- `c.env.MAILERSEND_API_KEY` (`string`)
+- `c.env.OWNER_EMAIL` (`string`)
+
+```ts
+const form = await c.env.DB
+  .prepare('SELECT id, token FROM forms WHERE token = ?1')
+  .bind(token)
+  .first();
+
+const object = await c.env.R2.get(`forms/${token}/original.vcf`);
+
+if (!object) {
+  return c.text('Contact file not found', 404);
+}
+```
+
+### Error Handling (Centralized)
+
+- Implement a single `app.onError()` at the app root.
+- Implement a single `app.notFound()` at the app root.
+- Route handlers should throw or return typed error responses; avoid ad-hoc `try/catch` blocks in every route unless mapping specific domain failures.
+- Never leak internal stack traces to clients.
+
+```ts
+app.notFound((c) => c.json({ error: 'Route not found' }, 404));
+
+app.onError((err, c) => {
+  console.error('Unhandled error', { path: c.req.path, err });
+  return c.json({ error: 'Internal Server Error' }, 500);
+});
+```
+
+### Validation (Zod + Hono Middleware)
+
+- Validate all request params, query, and JSON bodies with `zValidator`.
+- Do not trust raw `c.req.json()` payloads without schema validation.
+- Reuse shared schemas when appropriate.
+
+```ts
+import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator';
+
+const createFormSchema = z.object({
+  templateId: z.string().uuid(),
+  contactVcf: z.string().min(1),
+});
+
+formRoutes.post(
+  '/',
+  zValidator('json', createFormSchema),
+  async (c) => {
+    const payload = c.req.valid('json');
+    return c.json({ accepted: true, templateId: payload.templateId }, 202);
+  },
+);
+```
+
+### API Example Files (`.http`) (Required)
+
+- Every API feature MUST include request examples in a `.http` file.
+- When adding a new endpoint, create a matching `.http` file in `src/api/http/`.
+- When changing an existing endpoint, update its existing `.http` file in the same pull request.
+- `.http` files should include at least:
+  - happy-path request
+  - one validation/error-path request
+  - required headers (for example `x-api-secret`)
+  - realistic local URLs (`http://localhost:8787/...`)
+- Naming convention:
+  - `src/api/http/forms.http`
+  - `src/api/http/templates.http`
+  - one file per route domain
+- API work is not done until the corresponding `.http` examples are added or updated.
+
+### Response Helpers (Consistency Rules)
+
+- Use `c.json()` for all JSON responses.
+- Use `c.text()` for plain text responses (health checks, simple status messages).
+- Use `c.body()` only for binary/stream responses (for example VCF downloads).
+- Always set explicit status codes.
+
+```ts
+healthRoutes.get('/', (c) => c.text('ok', 200));
+
+formRoutes.get('/:token/download', async (c) => {
+  const token = c.req.param('token');
+  const file = await c.env.R2.get(`forms/${token}/generated.vcf`);
+  if (!file) return c.json({ error: 'Not Found' }, 404);
+
+  return c.body(file.body, 200, {
+    'content-type': 'text/vcard; charset=utf-8',
+    'content-disposition': `attachment; filename="${token}.vcf"`,
+  });
+});
+```
+
+Implementation is complete only when all new endpoints follow this section exactly.
+
 ````
 
 ## Contact Handling (VCF)

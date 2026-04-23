@@ -16,6 +16,8 @@
     "build:api": "npm run build --workspace=src/api",
     "build:frontend": "npm run build --workspace=src/frontend",
     "deploy:api": "npm run deploy --workspace=src/api",
+    "db:migrate:api": "npm run db:migrate --workspace=src/api",
+    "db:migrate:api:local": "npm run db:migrate:local --workspace=src/api",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"

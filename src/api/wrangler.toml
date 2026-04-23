@@ -3,15 +3,16 @@ main = "src/index.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
+[vars]
+PUBLIC_APP_URL = "http://localhost:3000"
+
 [dev]
 port = 8787
 local_protocol = "http"
 
 [[d1_databases]]
-binding = "DB"
+binding = "D1"
 database_name = "contactswap-db"
-database_id = ""
-migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "R2"
@@ -25,4 +26,7 @@ name = "contactswap-api"
 routes = [
   { pattern = "api.contactswap.app", custom_domain = true }
 ]
+
+[env.production.vars]
+PUBLIC_APP_URL = "https://contactswap.app"
 
