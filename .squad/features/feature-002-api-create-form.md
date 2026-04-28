@@ -27,6 +27,7 @@ Give the administrator (single requester) an endpoint to create a new form by up
 - Photo extraction: if the VCF contains a `PHOTO` property (base64 encoded), detect its MIME type from the VCF declaration (`TYPE=JPEG`, `TYPE=PNG`, or data URI prefix), decode it, and upload to R2 as `forms/{token}/photo.{ext}` with the correct `contentType`; strip it from the stored VCF
 - Original VCF (with photo stripped) stored at `forms/{token}/original.vcf` in R2
 - Template existence validated against D1 before proceeding
+- Template seed data initialized in D1 so at least one usable template exists in fresh environments (local + production)
 - Template `fields` JSON column snapshotted into `field_config` on the new form row (changes to the template must not affect existing forms)
 - Extracted contact fields serialized as a `prefilled` JSON column (`Record<string, string>`) on the form row — avoids R2 read + re-parse on every form page load
 - D1 migration `0002_add_prefilled_column.sql` adds `prefilled TEXT NOT NULL DEFAULT '{}'` to the `forms` table
@@ -58,6 +59,7 @@ Give the administrator (single requester) an endpoint to create a new form by up
 | `src/api/src/routes/forms.ts` | Hono sub-app with `POST /` handler |
 | `src/api/src/middleware/require-api-secret.ts` | `MiddlewareHandler` that checks `x-api-secret` against `c.env.API_SECRET` |
 | `src/api/migrations/0002_add_prefilled_column.sql` | Adds `prefilled TEXT NOT NULL DEFAULT '{}'` to `forms` |
+| `src/api/migrations/0003_seed_templates.sql` | Inserts baseline template rows using idempotent SQL (`INSERT ... ON CONFLICT DO UPDATE`) |
 
 ### Modified files
 
@@ -113,26 +115,35 @@ Content-Disposition: form-data; name="templateId"
 1. requireApiSecret middleware → 401 if missing/wrong
 2. Parse multipart body → extract vcf text + templateId string
 3. Validate templateId: zValidator on form fields (templateId: z.string().uuid())
-4. Load template from D1 → 404 if not found
-5. parseVcf(vcfText) → { contact, photoBase64, photoMimeType }
-6. Generate token = hex(crypto.getRandomValues(new Uint8Array(32)))
-7. Generate id = crypto.randomUUID()
-8. If photoBase64:
+4. Ensure template seed migration has been applied (baseline templates exist in DB)
+5. Load template from D1 → 404 if not found
+6. parseVcf(vcfText) → { contact, photoBase64, photoMimeType }
+7. Generate token = hex(crypto.getRandomValues(new Uint8Array(32)))
+8. Generate id = crypto.randomUUID()
+9. If photoBase64:
      ext = mimeTypeToExt(photoMimeType)  // e.g. 'image/jpeg' → 'jpg', 'image/png' → 'png'
      decode base64 → Uint8Array
      R2.put(`forms/${token}/photo.${ext}`, bytes, { httpMetadata: { contentType: photoMimeType } })
-9. R2.put(`forms/${token}/original.vcf`, vcfText, { httpMetadata: { contentType: 'text/vcard' } })
-10. Build prefilled: Record<string, string> from Contact fields that are present
-11. Build field_config: JSON.stringify(template.fields)  ← snapshot
-12. Insert into forms (D1):
+10. R2.put(`forms/${token}/original.vcf`, vcfText, { httpMetadata: { contentType: 'text/vcard' } })
+11. Build prefilled: Record<string, string> from Contact fields that are present
+12. Build field_config: JSON.stringify(template.fields)  ← snapshot
+13. Insert into forms (D1):
       id, token, template_id, field_config, prefilled, original_contact_url, original_contact_name,
       status='pending', expires_at=now+30d
     prefilled = JSON.stringify(prefilledMap)
     original_contact_url = `forms/${token}/original.vcf`  (R2 key, not a public URL)
     original_contact_name = contact.fullName
-13. Return 201:
+14. Return 201:
     { id, token, url: `https://contactswap.app/form/${token}`, expiresAt }
 ```
+
+### Template seed requirements
+
+- Seed data is managed through D1 migrations, not ad-hoc runtime inserts.
+- Seed migration must be idempotent so it can run safely in local, staging, and production.
+- At minimum, one default template row must exist (`is_default = 1`) with valid `fields` JSON matching shared `FieldKey` values.
+- If a seeded template row already exists (same `id` or unique `name`), migration should update mutable fields (`description`, `fields`, `is_default`, `updated_at`) and preserve stable identity.
+- Local setup (`npm run db:migrate:api:local`) and production rollout (`npm run db:migrate:api`) both initialize the same baseline template set.
 
 ### Error responses
 
@@ -159,6 +170,8 @@ Content-Disposition: form-data; name="templateId"
 - [ ] AC9: `POST /v1/forms` with an unknown `templateId` UUID returns `404`
 - [ ] AC10: `POST /v1/forms` with a VCF missing `FN` returns `422`
 - [ ] AC11: The `index.ts` entry point uses the full SPEC.md pattern (logger, cors, notFound, onError)
+- [ ] AC12: On a fresh DB, running migrations creates at least one template row with `is_default = 1`
+- [ ] AC13: Re-running migrations does not create duplicate template rows (idempotent seed behavior)
 
 ---
 
