@@ -5,6 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 PUBLIC_APP_URL = "http://localhost:3000"
+DEFAULT_API_SECRET = "contactswap"
 
 [dev]
 port = 8787

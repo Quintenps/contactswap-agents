@@ -8,12 +8,14 @@
 
 import type { MiddlewareHandler } from 'hono';
 import type { Env } from '../types/env';
+import { API_SECRET_HEADER } from '../constants/http';
 
 type AppEnv = { Bindings: Env };
 
 export const requireApiSecret: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const incoming = c.req.header('x-api-secret');
-  if (!incoming || incoming !== c.env.API_SECRET) {
+  const expectedSecret = c.env.API_SECRET?.trim() || c.env.DEFAULT_API_SECRET?.trim();
+  const incoming = c.req.header(API_SECRET_HEADER);
+  if (!incoming || !expectedSecret || incoming !== expectedSecret) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
   await next();

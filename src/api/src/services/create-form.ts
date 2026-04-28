@@ -46,7 +46,7 @@ export async function createForm(env: Env, input: CreateFormInput): Promise<Crea
   await uploadPhotoIfPresent(env, token, photoBase64, photoMimeType);
   await putOriginalVcf(env.R2, originalContactKey, input.vcfText);
 
-  await insertFormRecord(env.DB, {
+  await insertFormRecord(env.D1, {
     id,
     token,
     templateId: input.templateId,
@@ -66,7 +66,7 @@ export async function createForm(env: Env, input: CreateFormInput): Promise<Crea
 }
 
 async function loadTemplate(env: Env, templateId: string) {
-  const template = await findTemplateById(env.DB, templateId);
+  const template = await findTemplateById(env.D1, templateId);
 
   if (!template) {
     throw new CreateFormServiceError('Template not found', 404);

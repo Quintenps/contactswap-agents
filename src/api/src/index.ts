@@ -7,6 +7,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { healthRoutes } from './routes/health';
 import { formRoutes } from './routes/forms';
+import { API_SECRET_HEADER } from './constants/http';
 import type { Env } from './types/env';
 
 type AppEnv = {
@@ -19,7 +20,7 @@ app.use('*', logger());
 app.use('/v1/*', cors({
   origin: ['https://contactswap.app'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'x-api-secret'],
+  allowHeaders: ['Content-Type', 'Authorization', API_SECRET_HEADER],
 }));
 
 app.route('/health', healthRoutes);

@@ -1,13 +1,10 @@
 @baseUrl = http://localhost:8787
-@apiSecret = contactswap
 @templateId = 550e8400-e29b-41d4-a716-446655440000
 
-### Create form from VCF (happy path shape)
-# Note: this succeeds only when:
-# - x-api-secret matches configured secret (API_SECRET if set, otherwise DEFAULT_API_SECRET from wrangler vars)
-# - templateId exists in D1 templates table (the default ID in this file is seeded by migration 0003)
+### Protected route rejects missing token (expect 401)
+# Expected: HTTP 401
+# Expected body: { "error": "Unauthorized" }
 POST {{baseUrl}}/v1/forms
-x-api-secret: {{apiSecret}}
 Content-Type: multipart/form-data; boundary=----ContactSwapBoundary
 
 ------ContactSwapBoundary
@@ -21,9 +18,5 @@ Content-Type: text/vcard
 BEGIN:VCARD
 VERSION:3.0
 FN:Jane Doe
-N:Doe;Jane;;;
-EMAIL;TYPE=WORK:jane.doe@company.com
-EMAIL;TYPE=HOME:jane@example.com
-TEL;TYPE=CELL:+15551234567
 END:VCARD
 ------ContactSwapBoundary--
