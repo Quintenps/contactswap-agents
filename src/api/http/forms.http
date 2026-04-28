@@ -27,3 +27,7 @@ EMAIL;TYPE=HOME:jane@example.com
 TEL;TYPE=CELL:+15551234567
 END:VCARD
 ------ContactSwapBoundary--
+
+### List forms (admin only)
+GET {{baseUrl}}/v1/forms?limit=20&offset=0&status=pending
+x-api-secret: {{apiSecret}}
