@@ -10,7 +10,8 @@ import { z } from 'zod';
 import type { Env } from '../types/env';
 import { requireApiSecret } from '../middleware/require-api-secret';
 import { createForm, CreateFormServiceError } from '../services/create-form';
-import { listFormRecords } from '../repositories/form-repository';
+import { deleteFormById, getFormForDelete, listFormRecords } from '../repositories/form-repository';
+import { deleteObjectsByPrefix } from '../repositories/contact-file-repository';
 
 type AppEnv = { Bindings: Env };
 
@@ -39,6 +40,10 @@ const listFormsQuerySchema = z.object({
     .min(0, 'offset must be at least 0')
     .default(0),
   status: z.enum(['pending', 'completed', 'expired']).optional(),
+});
+
+const formIdParamSchema = z.object({
+  id: z.string().uuid('id must be a valid UUID'),
 });
 
 formRoutes.get('/', async (c) => {
@@ -92,3 +97,34 @@ formRoutes.post(
     }
   },
 );
+
+formRoutes.delete('/:id', async (c) => {
+  const parsed = formIdParamSchema.safeParse(c.req.param());
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Invalid form id' }, 422);
+  }
+
+  const { id } = parsed.data;
+
+  const form = await getFormForDelete(c.env.D1, id);
+  if (!form) {
+    return c.json({ error: 'Form not found' }, 404);
+  }
+
+  await deleteFormById(c.env.D1, id);
+
+  try {
+    await deleteObjectsByPrefix(c.env.R2, `forms/${form.token}/`);
+  } catch (error) {
+    // Keep the endpoint durable: deletion of DB record is authoritative.
+    console.error('Failed to clean up R2 form objects after DB delete', {
+      formId: id,
+      token: form.token,
+      error,
+    });
+  }
+
+  return c.body(null, 204);
+});

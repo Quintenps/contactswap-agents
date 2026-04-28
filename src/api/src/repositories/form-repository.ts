@@ -58,6 +58,12 @@ interface CountRow {
   total: number;
 }
 
+interface DeleteFormRow {
+  id: string;
+  token: string;
+  original_contact_url: string;
+}
+
 export async function listFormRecords(
   db: D1Database,
   input: ListFormRecordsInput,
@@ -99,4 +105,28 @@ export async function listFormRecords(
     limit: input.limit,
     offset: input.offset,
   };
+}
+
+export async function getFormForDelete(
+  db: D1Database,
+  id: string,
+): Promise<{ id: string; token: string; originalContactKey: string } | null> {
+  const row = await db
+    .prepare('SELECT id, token, original_contact_url FROM forms WHERE id = ?1')
+    .bind(id)
+    .first<DeleteFormRow>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    token: row.token,
+    originalContactKey: row.original_contact_url,
+  };
+}
+
+export async function deleteFormById(db: D1Database, id: string): Promise<void> {
+  await db.prepare('DELETE FROM forms WHERE id = ?1').bind(id).run();
 }
