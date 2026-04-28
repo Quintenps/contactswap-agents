@@ -1,0 +1,22 @@
+@baseUrl = http://localhost:8787
+@templateId = 550e8400-e29b-41d4-a716-446655440000
+
+### Protected route rejects missing token (expect 401)
+# Expected: HTTP 401
+# Expected body: { "error": "Unauthorized" }
+POST {{baseUrl}}/v1/forms
+Content-Type: multipart/form-data; boundary=----ContactSwapBoundary
+
+------ContactSwapBoundary
+Content-Disposition: form-data; name="templateId"
+
+{{templateId}}
+------ContactSwapBoundary
+Content-Disposition: form-data; name="vcf"; filename="contact.vcf"
+Content-Type: text/vcard
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Jane Doe
+END:VCARD
+------ContactSwapBoundary--

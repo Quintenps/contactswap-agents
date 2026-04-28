@@ -1,0 +1,4 @@
+/**
+ * Template Types
+ */
+export {};

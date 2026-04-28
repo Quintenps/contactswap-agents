@@ -10,4 +10,9 @@
 
 - Initialized as backend specialist for services and integrations.
 - Recast from Matrix universe (Morpheus) to Breaking Bad universe.
+- Standardized API framework to Hono for Cloudflare Worker runtime.
+- Established Worker entry pattern: `export default app` with centralized `app.onError()` and `app.notFound()`.
+- Route composition pattern fixed to `src/api/src/routes/*` mounted via `app.route()`.
+- Request validation pattern fixed to `@hono/zod-validator` + Zod schemas.
+- Binding access pattern fixed to typed `c.env` using `Env` from `src/api/src/types/env.ts`.
 

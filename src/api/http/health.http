@@ -1,0 +1,7 @@
+@baseUrl = http://localhost:8787
+
+### Health check (happy path)
+GET {{baseUrl}}/health
+
+### Not found (error path example)
+GET {{baseUrl}}/health/does-not-exist

@@ -1,0 +1,42 @@
+{
+  "name": "contactswap",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Exchange contact information without the awkward dance",
+  "workspaces": [
+    "src/shared",
+    "src/api",
+    "src/frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=src/frontend",
+    "dev:api": "npm run dev --workspace=src/api",
+    "dev:all": "concurrently \"npm run dev:api\" \"npm run dev\"",
+    "build": "npm run build --workspaces",
+    "build:api": "npm run build --workspace=src/api",
+    "build:frontend": "npm run build --workspace=src/frontend",
+    "deploy:api": "npm run deploy --workspace=src/api",
+    "db:migrate:api": "npm run db:migrate --workspace=src/api",
+    "db:migrate:api:local": "npm run db:migrate:local --workspace=src/api",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "contacts",
+    "vcf",
+    "vcard",
+    "cloudflare",
+    "workers"
+  ],
+  "author": "Quinten Peels",
+  "license": "UNLICENSED"
+}
+

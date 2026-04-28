@@ -3,6 +3,11 @@
 .squad/log/
 .squad/decisions/inbox/
 .squad/sessions/
+# Node dependencies
+node_modules/
+# Next.js build output
+.next/
+out/
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
 # IDE

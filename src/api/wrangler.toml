@@ -1,0 +1,33 @@
+name = "contactswap-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+PUBLIC_APP_URL = "http://localhost:3000"
+DEFAULT_API_SECRET = "contactswap"
+
+[dev]
+port = 8787
+local_protocol = "http"
+
+[[d1_databases]]
+binding = "D1"
+database_name = "contactswap-db"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "contactswap-files"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+[env.production]
+name = "contactswap-api"
+routes = [
+  { pattern = "api.contactswap.app", custom_domain = true }
+]
+
+[env.production.vars]
+PUBLIC_APP_URL = "https://contactswap.app"
+
