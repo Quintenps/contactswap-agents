@@ -12,3 +12,6 @@ out/
 .squad-workstream
 # IDE
 .idea/
+
+# macOS
+.DS_Store
