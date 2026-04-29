@@ -1,8 +1,13 @@
 /**
- * Admin route: Forms
+ * Forms routes
  *
- * POST /v1/forms — create a new form from an uploaded VCF file.
- * Protected by x-api-secret middleware.
+ * Admin routes (require x-api-secret):
+ *   GET    /v1/forms          — list forms
+ *   POST   /v1/forms          — create a form from a VCF upload
+ *   DELETE /v1/forms/:id      — delete a form
+ *
+ * Public routes (no auth):
+ *   GET    /v1/forms/:token   — retrieve form data by token
  */
 
 import { Hono } from 'hono';
@@ -10,15 +15,12 @@ import { z } from 'zod';
 import type { Env } from '../types/env';
 import { requireApiSecret } from '../middleware/require-api-secret';
 import { createForm, CreateFormServiceError } from '../services/create-form';
-import { deleteFormById, getFormForDelete, listFormRecords } from '../repositories/form-repository';
+import { deleteFormById, getFormByToken, getFormForDelete, listFormRecords } from '../repositories/form-repository';
 import { deleteObjectsByPrefix } from '../repositories/contact-file-repository';
 
 type AppEnv = { Bindings: Env };
 
 export const formRoutes = new Hono<AppEnv>();
-
-// All form admin routes require the API secret
-formRoutes.use('*', requireApiSecret);
 
 const createFormSchema = z.object({
   templateId: z.string().uuid(),
@@ -46,7 +48,13 @@ const formIdParamSchema = z.object({
   id: z.string().uuid('id must be a valid UUID'),
 });
 
-formRoutes.get('/', async (c) => {
+const formTokenParamSchema = z.object({
+  token: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/, 'token must be a 64-character lowercase hex string'),
+});
+
+formRoutes.get('/', requireApiSecret, async (c) => {
   const parsed = listFormsQuerySchema.safeParse(c.req.query());
 
   if (!parsed.success) {
@@ -67,6 +75,7 @@ formRoutes.get('/', async (c) => {
 
 formRoutes.post(
   '/',
+  requireApiSecret,
   async (c) => {
     const formData = await c.req.formData();
     const parsed = createFormSchema.safeParse({
@@ -98,7 +107,7 @@ formRoutes.post(
   },
 );
 
-formRoutes.delete('/:id', async (c) => {
+formRoutes.delete('/:id', requireApiSecret, async (c) => {
   const parsed = formIdParamSchema.safeParse(c.req.param());
 
   if (!parsed.success) {
@@ -127,4 +136,31 @@ formRoutes.delete('/:id', async (c) => {
   }
 
   return c.body(null, 204);
+});
+
+formRoutes.get('/:token', async (c) => {
+  const parsed = formTokenParamSchema.safeParse(c.req.param());
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Invalid token' }, 422);
+  }
+
+  const { token } = parsed.data;
+
+  const form = await getFormByToken(c.env.D1, token);
+  if (!form) {
+    return c.json({ error: 'Form not found' }, 404);
+  }
+
+  const now = new Date().toISOString();
+  if (form.expiresAt < now) {
+    return c.json({ error: 'Form has expired' }, 410);
+  }
+
+  if (form.status === 'completed') {
+    return c.json({ error: 'Form has already been submitted' }, 409);
+  }
+
+  return c.json(form, 200);
 });

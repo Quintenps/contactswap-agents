@@ -34,6 +34,10 @@ END:VCARD
 GET {{baseUrl}}/v1/forms?limit=20&offset=0&status=pending
 x-api-secret: {{apiSecret}}
 
+### Retrieve form by token (public)
+# Replace <token> with the 64-char hex token returned by the create request.
+GET {{baseUrl}}/v1/forms/{{createForm.response.body.$.token}}
+
 ### Delete form by id (admin only)
 # Auto mode: run the named create request first, then run this request.
 DELETE {{baseUrl}}/v1/forms/{{createForm.response.body.$.id}}
