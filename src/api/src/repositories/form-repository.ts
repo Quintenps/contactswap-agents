@@ -2,7 +2,7 @@
  * D1 form persistence layer
  */
 
-import type { FormStatus, ListFormsResponse } from '@contactswap/shared';
+import type { FieldConfig, FormData, FormStatus, ListFormsResponse } from '@contactswap/shared';
 
 export interface InsertFormRecordInput {
   id: string;
@@ -129,4 +129,38 @@ export async function getFormForDelete(
 
 export async function deleteFormById(db: D1Database, id: string): Promise<void> {
   await db.prepare('DELETE FROM forms WHERE id = ?1').bind(id).run();
+}
+
+interface RetrieveFormRow {
+  token: string;
+  original_contact_name: string;
+  field_config: string;
+  prefilled: string;
+  status: FormStatus;
+  expires_at: string;
+}
+
+export async function getFormByToken(
+  db: D1Database,
+  token: string,
+): Promise<FormData | null> {
+  const row = await db
+    .prepare(
+      'SELECT token, original_contact_name, field_config, prefilled, status, expires_at FROM forms WHERE token = ?1',
+    )
+    .bind(token)
+    .first<RetrieveFormRow>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    token: row.token,
+    contactName: row.original_contact_name,
+    fields: JSON.parse(row.field_config) as FieldConfig[],
+    prefilled: JSON.parse(row.prefilled) as Record<string, string>,
+    status: row.status,
+    expiresAt: row.expires_at,
+  };
 }
