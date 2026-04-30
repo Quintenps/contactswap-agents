@@ -116,8 +116,13 @@ Content-Type: application/json
 - Required/optional behavior comes from the form's stored `field_config` snapshot.
 - Submission may include only supported `FieldKey` values.
 - `photo`, when present, must be a supported image payload:
-  - base64 data URI preferred
+  - base64 data URI preferred (e.g., `data:image/jpeg;base64,...`)
   - JPEG or PNG only for MVP
+  - Data URI payload limit: **max 55,000 base64 chars** (about 40 KB decoded image bytes)
+  - Equivalent raw upload validation limit (before processing): **10 MB** max
+  - Server processes to 200×200 JPEG at 80% quality (~10–30 KB output)
+  - Base64-encoded result target: ~15–40 KB, embedded in vCard `PHOTO` property
+  - Total vCard with photo target: ~20–50 KB (well under 100 KB email/parsing safety target)
 - Empty strings for required fields return `422`.
 
 ### Response semantics

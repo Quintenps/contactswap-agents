@@ -164,3 +164,25 @@ export async function getFormByToken(
     expiresAt: row.expires_at,
   };
 }
+
+/**
+ * Atomically mark a form as completed only when it is still pending.
+ * Returns true if the update affected a row (i.e. the form was pending),
+ * false if the form was already completed or expired.
+ */
+export async function markFormCompleted(
+  db: D1Database,
+  token: string,
+  completedAt: string,
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `UPDATE forms
+       SET status = 'completed', completed_at = ?1
+       WHERE token = ?2 AND status = 'pending' AND expires_at > ?3`,
+    )
+    .bind(completedAt, token, completedAt)
+    .run();
+
+  return (result.meta.changes ?? 0) > 0;
+}
