@@ -1,4 +1,0 @@
-/**
- * Contact Types
- */
-export {};

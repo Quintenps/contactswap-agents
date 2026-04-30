@@ -1,4 +1,0 @@
-/**
- * Form Types
- */
-export {};
