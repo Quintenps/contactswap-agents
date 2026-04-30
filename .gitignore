@@ -15,3 +15,7 @@ out/
 
 # macOS
 .DS_Store
+
+# Shared package build artifacts
+src/shared/dist/
+src/shared/tsconfig.tsbuildinfo
