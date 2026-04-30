@@ -29,4 +29,8 @@ export interface ApiError {
     code?: string;
     details?: Record<string, string>;
 }
+export interface AnswerFormResponse {
+    success: true;
+    completedAt: string;
+}
 //# sourceMappingURL=api.d.ts.map

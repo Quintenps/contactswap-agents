@@ -36,3 +36,8 @@ export interface ApiError {
   details?: Record<string, string>;
 }
 
+export interface AnswerFormResponse {
+  success: true;
+  completedAt: string;
+}
+

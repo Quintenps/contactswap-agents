@@ -17,6 +17,7 @@ import { requireApiSecret } from '../middleware/require-api-secret';
 import { createForm, CreateFormServiceError } from '../services/create-form';
 import { deleteFormById, getFormByToken, getFormForDelete, listFormRecords } from '../repositories/form-repository';
 import { deleteObjectsByPrefix } from '../repositories/contact-file-repository';
+import { answerForm, AnswerFormError } from '../services/answer-form';
 
 type AppEnv = { Bindings: Env };
 
@@ -163,4 +164,45 @@ formRoutes.get('/:token', async (c) => {
   }
 
   return c.json(form, 200);
+});
+
+const answerFormBodySchema = z.object({
+  fields: z.record(z.string(), z.string()),
+  photo: z
+    .string()
+    .max(55_000, 'photo data URI must not exceed 55,000 characters')
+    .optional()
+    .nullable(),
+});
+
+formRoutes.post('/:token/answer', async (c) => {
+  const tokenParsed = formTokenParamSchema.safeParse(c.req.param());
+
+  if (!tokenParsed.success) {
+    const issue = tokenParsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Invalid token' }, 422);
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const bodyParsed = answerFormBodySchema.safeParse(body);
+
+  if (!bodyParsed.success) {
+    const issue = bodyParsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Invalid request body' }, 422);
+  }
+
+  try {
+    const response = await answerForm(c.env.D1, {
+      token: tokenParsed.data.token,
+      fields: bodyParsed.data.fields,
+      photo: bodyParsed.data.photo,
+    });
+
+    return c.json(response, 200);
+  } catch (error) {
+    if (error instanceof AnswerFormError) {
+      return c.json({ error: error.message }, error.status);
+    }
+    throw error;
+  }
 });

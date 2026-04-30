@@ -737,8 +737,9 @@ When a form responder uploads a photo:
 
 **Step 1: Validate**
 - Accept: JPEG, PNG, WebP, HEIC
-- Reject: Files > 10MB (prevent abuse)
+- Reject: Files **> 10 MB** (prevent abuse and resource exhaustion)
 - Reject: Non-image files
+- Return 422 validation error if photo exceeds size or format constraints
 
 **Step 2: Resize**
 - Max dimensions: **200x200 pixels** (square, cover crop)
@@ -828,14 +829,17 @@ When you upload a contact that already has a photo:
 
 ### Size Budget
 
-| Component | Size |
-|-----------|------|
-| vCard without photo | ~1-2KB |
-| Photo (200x200 JPEG 80%) | ~10-30KB |
-| Photo base64 encoded | ~15-40KB |
-| **Total vCard with photo** | **~20-50KB** ✅ |
+| Component | Size | Constraint |
+|-----------|------|------------|
+| vCard without photo | ~1–2 KB | N/A |
+| Raw photo upload | ≤ 10 MB | Max enforced during validation |
+| Photo (200×200 JPEG 80%) | ~10–30 KB | Output target after processing |
+| Photo base64 encoded | ~15–40 KB | Embedded in vCard `PHOTO` property |
+| Photo data URI payload (API) | ≤ 55,000 base64 chars | Hard cap for `POST /v1/forms/:token/answer` payload |
+| **Total vCard with photo** | **~20–50 KB** | ✅ Well under 100 KB email/parsing safety target |
 
-This keeps the VCF well under email attachment limits and fast to parse.
+**Integration with POST /v1/forms/:token/answer:**
+When a form responder uploads a photo in the answer submission, the server validates the raw file size (max 10 MB), processes it server-side to 200×200 JPEG at 80% quality, base64-encodes it, and embeds it in the generated vCard. For API submissions, the `photo` data URI is capped at 55,000 base64 chars (about 40 KB decoded image bytes). The total vCard output (including photo) remains under 50 KB, ensuring fast email delivery and reliable contact import.
 
 ### QR Code
 
