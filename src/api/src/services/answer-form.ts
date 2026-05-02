@@ -9,6 +9,7 @@ import type { FieldConfig, FieldKey } from '@contactswap/shared';
 import type { AnswerFormResponse } from '@contactswap/shared';
 import { generateVcf } from '../lib/vcf-generator';
 import { getFormByToken, markFormCompleted } from '../repositories/form-repository';
+import { sendFormAnswerEmail } from './send-form-answer-email';
 
 /**
  * Photo size constraints (must align with SPEC.md and feature-006)
@@ -50,9 +51,16 @@ export interface AnswerFormInput {
   photo?: string | null;
 }
 
+export interface AnswerFormEmailConfig {
+  apiKey: string;
+  mailFrom: string;
+  ownerEmail: string;
+}
+
 export async function answerForm(
   db: D1Database,
   input: AnswerFormInput,
+  emailConfig?: AnswerFormEmailConfig,
 ): Promise<AnswerFormResponse> {
   const form = await getFormByToken(db, input.token);
 
@@ -87,12 +95,7 @@ export async function answerForm(
     photoMimeType = parsed.mimeType;
   }
 
-  // Generate VCF — result is intentionally not stored or returned for now.
-  // It will be used for email delivery in a follow-up feature.
   const vcf = generateVcf({ contact, photoBase64, photoMimeType });
-
-  // Log the generated VCF for verification during development
-  console.log(`[answer-form] Generated VCF for token ${input.token}:\n${vcf}`);
 
   // Atomically mark completed — guards against race conditions
   const completed = await markFormCompleted(db, input.token, now);
@@ -104,6 +107,21 @@ export async function answerForm(
       throw new AnswerFormError('Form has expired', 410);
     }
     throw new AnswerFormError('Form has already been submitted', 409);
+  }
+
+  // Resilient email delivery: form completion is authoritative.
+  // A delivery failure is logged but does not affect the response.
+  if (emailConfig) {
+    await sendFormAnswerEmail({
+      apiKey: emailConfig.apiKey,
+      mailFrom: emailConfig.mailFrom,
+      ownerEmail: emailConfig.ownerEmail,
+      contactName: contact.fullName || 'Unknown',
+      vcf,
+      formToken: input.token,
+    });
+  } else {
+    console.warn('[answer-form] emailConfig not provided — skipping email delivery');
   }
 
   return {

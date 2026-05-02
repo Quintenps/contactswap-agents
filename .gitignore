@@ -19,3 +19,6 @@ out/
 # Shared package build artifacts
 src/shared/dist/
 src/shared/tsconfig.tsbuildinfo
+
+# Local environment variables file (not checked in to version control)
+.dev.vars
