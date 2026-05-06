@@ -19,3 +19,6 @@ out/
 # Shared package build artifacts
 src/shared/dist/
 src/shared/tsconfig.tsbuildinfo
+
+
+.dev.vars

@@ -2,6 +2,18 @@
  * R2 contact file persistence layer
  */
 
+import { OWNER_CARD_KEY } from '../constants/storage';
+
+export async function putOwnerVcf(bucket: R2Bucket, vcfText: string): Promise<void> {
+  await bucket.put(OWNER_CARD_KEY, vcfText, {
+    httpMetadata: { contentType: 'text/vcard' },
+  });
+}
+
+export async function getOwnerVcf(bucket: R2Bucket): Promise<R2ObjectBody | null> {
+  return bucket.get(OWNER_CARD_KEY);
+}
+
 export async function putOriginalVcf(
   bucket: R2Bucket,
   objectKey: string,

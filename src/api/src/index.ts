@@ -7,6 +7,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { healthRoutes } from './routes/health';
 import { formRoutes } from './routes/forms';
+import { configRoutes } from './routes/config';
 import { API_SECRET_HEADER } from './constants/http';
 import type { Env } from './types/env';
 
@@ -25,6 +26,7 @@ app.use('/v1/*', cors({
 
 app.route('/health', healthRoutes);
 app.route('/v1/forms', formRoutes);
+app.route('/v1/config', configRoutes);
 
 app.notFound((c) => c.json({ error: 'Not Found' }, 404));
 

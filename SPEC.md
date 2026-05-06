@@ -124,7 +124,7 @@ When you upload a contact to create a form:
 ### MVP Scope
 
 - **Single requester** — You (Quinten) are always the requester. No multi-user support needed for MVP.
-- **Your contact is pre-configured** — Your VCF is stored once, not uploaded per form.
+- **Your contact is pre-configured** — Your VCF is uploaded once via the `/config` page and stored in R2 under the fixed key `owner/card.vcf`. It is served to recipients after a successful form exchange.
 - **One form per contact** — Each unique URL is for one person to update their info.
 - **30-day form expiration** — Forms expire 30 days after creation. Expired forms show a friendly error.
 - **International support** — Support non-Latin names, international phone formats, and addresses.
@@ -1022,7 +1022,7 @@ The form UI should meet **WCAG 2.1 AA** standards:
 - [ ] CORS configured for `contactswap.app` ↔ `api.contactswap.app`
 - [ ] Rate limiting enabled
 - [ ] Default templates seeded in database
-- [ ] Your contact VCF uploaded to config
+- [ ] Your contact VCF uploaded via `/config` page (stored in R2 as `owner/card.vcf`)
 
 ### Post-Launch
 
