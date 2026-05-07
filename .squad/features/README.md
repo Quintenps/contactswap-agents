@@ -45,6 +45,11 @@ Implementation guidance, API contracts, edge cases.
 
 ## Current Features
 
+## Folder Structure
+
+- `api/` — API-related feature specs
+- `frontend/` — Frontend-related feature specs
+
 | Feature | Status | Assigned |
 |---------|--------|----------|
 | (none yet) | — | — |
