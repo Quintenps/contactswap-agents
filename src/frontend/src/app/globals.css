@@ -2,3 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+	:root {
+		color-scheme: light;
+	}
+
+	body {
+		margin: 0;
+		font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, Liberation Mono, monospace;
+		background: #fafafa;
+		color: #09090b;
+	}
+}
+
+@layer components {
+	.config-loading-line {
+		height: 3px;
+		width: min(220px, 100%);
+		border-radius: 9999px;
+		background: linear-gradient(90deg, rgba(24, 24, 27, 0.06), rgba(24, 24, 27, 0.45), rgba(24, 24, 27, 0.06));
+		background-size: 200% 100%;
+		animation: config-shimmer 1.5s ease-in-out infinite;
+	}
+}
+
+@keyframes config-shimmer {
+	0% {
+		background-position: 200% 0;
+		opacity: 0.55;
+	}
+
+	50% {
+		opacity: 1;
+	}
+
+	100% {
+		background-position: -200% 0;
+		opacity: 0.55;
+	}
+}
+
