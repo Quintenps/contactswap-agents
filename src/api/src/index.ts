@@ -16,10 +16,28 @@ type AppEnv = {
 };
 
 const app = new Hono<AppEnv>();
+const LOCAL_DEV_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+]);
 
 app.use('*', logger());
 app.use('/v1/*', cors({
-  origin: ['https://contactswap.app'],
+  origin: (origin, c) => {
+    const allowedOrigins = new Set(LOCAL_DEV_ORIGINS);
+
+    try {
+      allowedOrigins.add(new URL(c.env.PUBLIC_APP_URL).origin);
+    } catch {
+      // Ignore invalid PUBLIC_APP_URL values and fall back to known defaults.
+    }
+
+    if (!origin) {
+      return null;
+    }
+
+    return allowedOrigins.has(origin) ? origin : null;
+  },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization', API_SECRET_HEADER],
 }));
