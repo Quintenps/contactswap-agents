@@ -417,7 +417,7 @@ export default function ConfigPage() {
                 <button type="button" onClick={() => setShowUploadPanel((v) => !v)} className={`w-full rounded-xl px-4 py-2 text-xs font-semibold transition ${tone.primaryButton}`}>
                   {showUploadPanel ? 'Close' : 'Upload Owner Card'}
                 </button>
-                <Link href="/form?new=1" className={`block rounded-xl px-4 py-2 text-center text-xs font-semibold transition ${tone.secondaryButton}`}>
+                <Link href="/config/create-form" className={`block rounded-xl px-4 py-2 text-center text-xs font-semibold transition ${tone.secondaryButton}`}>
                   Create Form
                 </Link>
               </div>
