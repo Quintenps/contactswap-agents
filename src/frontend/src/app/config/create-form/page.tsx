@@ -5,10 +5,19 @@ import { useEffect, useRef, useState } from 'react';
 import type { TemplateSummary } from '@contactswap/shared';
 import { API_SECRET_STORAGE_KEY, ApiClientError, api } from '../../../lib/api';
 
+type TemplateField = {
+  fieldKey: string;
+  required: boolean;
+};
+
+type TemplateWithFields = TemplateSummary & {
+  fields?: TemplateField[];
+};
+
 export default function CreateFormPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [templates, setTemplates] = useState<TemplateSummary[]>([]);
+  const [templates, setTemplates] = useState<TemplateWithFields[]>([]);
   const [templateId, setTemplateId] = useState('');
   const [isDragActive, setIsDragActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -153,33 +162,35 @@ export default function CreateFormPage() {
     return labels[fieldKey] ?? fieldKey;
   }
 
+  const selectedTemplate = templates.find((template) => template.id === templateId);
+
   if (success) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_#f8eafe_0%,_#f7f9ff_36%,_#f5fffb_78%)] px-5 py-10 text-zinc-900">
+      <main className="material-shell flex items-center justify-center">
         <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-zinc-200/80 bg-white/85 p-8 backdrop-blur">
+          <div className="material-elevated p-8">
             <div className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-violet-100">
-                <svg className="h-6 w-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--md-primary-container)]">
+                <svg className="h-6 w-6 text-[var(--md-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-lg font-semibold text-zinc-900">Form Created</h2>
-              <p className="mt-2 text-sm text-zinc-600">Your form is ready to share.</p>
+              <h2 className="text-xl font-semibold text-[var(--md-text)]">Form Created</h2>
+              <p className="material-muted mt-2 text-sm">Your form is ready to share.</p>
             </div>
 
             <div className="mt-6 space-y-4">
               <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-600">Form URL</p>
-                <p className="break-all rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">{success.url}</p>
-                <p className="mt-1 text-xs text-zinc-600">Expires {formatDate(success.expiresAt)}</p>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--md-muted)]">Form URL</p>
+                <p className="break-all rounded-xl border border-[var(--md-outline)] bg-white/88 px-3 py-2 text-xs text-[var(--md-text)]">{success.url}</p>
+                <p className="material-muted mt-1 text-xs">Expires {formatDate(success.expiresAt)}</p>
               </div>
 
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => void copyUrl(success.url)}
-                  className="flex-1 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-50 transition hover:bg-zinc-700"
+                  className="material-button material-button-primary flex-1"
                 >
                   {copied ? '✓ Copied' : 'Copy URL'}
                 </button>
@@ -187,7 +198,7 @@ export default function CreateFormPage() {
                   href={success.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 text-center text-sm font-semibold text-zinc-700 transition hover:bg-violet-50"
+                  className="material-button material-button-secondary flex-1"
                 >
                   Open Form
                 </a>
@@ -202,12 +213,12 @@ export default function CreateFormPage() {
                 setTemplateId(templates[0]?.id ?? '');
                 setCopied(false);
               }}
-              className="mt-6 w-full rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-violet-50"
+              className="material-button material-button-secondary mt-6 w-full"
             >
               Create Another Form
             </button>
 
-            <Link href="/config" className="mt-3 block text-center text-xs text-violet-700 underline decoration-violet-300 underline-offset-2 hover:text-violet-900">
+            <Link href="/config" className="mt-3 block text-center text-xs text-[var(--md-primary)] underline decoration-[var(--md-outline-strong)] underline-offset-2 hover:text-[#1f3da9]">
               Back to config
             </Link>
           </div>
@@ -217,20 +228,20 @@ export default function CreateFormPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_#f8eafe_0%,_#f7f9ff_36%,_#f5fffb_78%)] px-5 py-10 text-zinc-900">
+    <main className="material-shell flex items-center justify-center">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <p className="text-xs uppercase tracking-[0.18em] text-zinc-600">Create Form</p>
-          <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Upload a contact</h1>
-          <p className="mt-2 text-sm text-zinc-600">Share a secure form to request updated contact information.</p>
+          <p className="material-chip">Create Form</p>
+          <h1 className="material-title mt-4 font-semibold">Upload A Contact</h1>
+          <p className="material-muted mt-3 text-sm">Share a secure form to request updated contact information.</p>
         </div>
 
-        <form className="space-y-6 rounded-2xl border border-zinc-200/80 bg-white/85 p-6 backdrop-blur" onSubmit={handleSubmit}>
+        <form className="material-elevated space-y-6 p-6" onSubmit={handleSubmit}>
           <fieldset disabled={isSubmitting} className="space-y-6">
             {/* VCF Upload */}
             <div>
-              <label className="block text-sm font-semibold text-zinc-900">Contact File (VCF)</label>
-              <p className="mt-1 text-xs text-zinc-600">Upload the .vcf file of the contact you want to update.</p>
+              <label className="block text-sm font-semibold text-[var(--md-text)]">Contact File (VCF)</label>
+              <p className="material-muted mt-1 text-xs">Upload the .vcf file of the contact you want to update.</p>
 
               <div
                 role="button"
@@ -257,8 +268,8 @@ export default function CreateFormPage() {
                 }}
                 className={`mt-3 cursor-pointer rounded-xl border-2 border-dashed p-6 transition ${
                   isDragActive
-                    ? 'border-zinc-900 bg-zinc-100'
-                    : 'border-zinc-300 bg-zinc-50 hover:border-zinc-500 hover:bg-zinc-100/70'
+                    ? 'border-[var(--md-primary)] bg-[var(--md-primary-container)]/55'
+                    : 'border-[var(--md-outline)] bg-white/86 hover:border-[var(--md-outline-strong)] hover:bg-white'
                 }`}
               >
                 <input
@@ -270,13 +281,13 @@ export default function CreateFormPage() {
                   disabled={isSubmitting}
                 />
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-zinc-800">Drop your file here</p>
-                  <p className="mt-1 text-xs text-zinc-600">or click to select</p>
+                  <p className="text-sm font-semibold text-[var(--md-text)]">Drop your file here</p>
+                  <p className="material-muted mt-1 text-xs">or click to select</p>
                 </div>
               </div>
 
               {selectedFile ? (
-                <p className="mt-2 rounded-lg bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-700">✓ {selectedFile.name}</p>
+                <p className="mt-2 rounded-lg bg-[var(--md-primary-container)] px-3 py-2 text-xs font-medium text-[var(--md-primary)]">✓ {selectedFile.name}</p>
               ) : null}
             </div>
 
@@ -285,14 +296,14 @@ export default function CreateFormPage() {
               <label htmlFor="template-id" className="block text-sm font-semibold text-zinc-900">
                 Form Template
               </label>
-              <p className="mt-1 text-xs text-zinc-600">Choose which fields to request from this contact.</p>
+              <p className="material-muted mt-1 text-xs">Choose which fields to request from this contact.</p>
 
               <select
                 id="template-id"
                 value={templateId}
                 onChange={(event) => setTemplateId(event.target.value)}
                 disabled={isLoadingTemplates || templates.length === 0 || isSubmitting}
-                className="mt-3 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100 disabled:bg-zinc-100 disabled:text-zinc-500"
+                className="material-select mt-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500"
               >
                 {templates.length === 0 ? (
                   <option disabled>{isLoadingTemplates ? 'Loading templates...' : 'No templates available'}</option>
@@ -306,36 +317,35 @@ export default function CreateFormPage() {
               </select>
 
               {/* Template Description */}
-              {templates.find((t) => t.id === templateId)?.description ? (
-                <p className="mt-2 text-xs text-zinc-600">{templates.find((t) => t.id === templateId)?.description}</p>
+              {selectedTemplate?.description ? (
+                <p className="material-muted mt-2 text-xs">{selectedTemplate.description}</p>
               ) : null}
 
               {/* Template Fields Display */}
-              {templates.find((t) => t.id === templateId)?.fields && templates.find((t) => t.id === templateId)!.fields.length > 0 ? (
+              {selectedTemplate?.fields && selectedTemplate.fields.length > 0 ? (
                 <div className="mt-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-600">Form includes:</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--md-muted)]">Form includes:</p>
                   <div className="flex flex-wrap gap-2">
-                    {templates
-                      .find((t) => t.id === templateId)!
-                      .fields.sort((a, b) => {
+                    {[...selectedTemplate.fields]
+                      .sort((a: TemplateField, b: TemplateField) => {
                         // Sort required fields first, then by field name
                         if (a.required !== b.required) {
                           return b.required ? 1 : -1;
                         }
                         return getFieldLabel(a.fieldKey).localeCompare(getFieldLabel(b.fieldKey));
                       })
-                      .map((field) => (
+                      .map((field: TemplateField) => (
                         <span
                           key={field.fieldKey}
                           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
                             field.required
-                              ? 'border border-violet-200 bg-violet-50 text-violet-700'
-                              : 'border border-zinc-200 bg-zinc-50 text-zinc-700'
+                              ? 'border border-[var(--md-outline)] bg-[var(--md-primary-container)] text-[var(--md-primary)]'
+                              : 'border border-[var(--md-outline)] bg-white text-[var(--md-muted)]'
                           }`}
                         >
                           {getFieldLabel(field.fieldKey)}
                           {field.required ? (
-                            <span className="ml-0.5 inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" title="Required" />
+                            <span className="ml-0.5 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--md-primary)]" title="Required" />
                           ) : (
                             <span className="ml-0.5 text-zinc-400">○</span>
                           )}
@@ -357,15 +367,15 @@ export default function CreateFormPage() {
             <button
               type="submit"
               disabled={isSubmitting || !selectedFile || !templateId || isLoadingTemplates}
-              className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-zinc-50 transition hover:bg-zinc-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="material-button material-button-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Creating form...' : 'Create Form'}
             </button>
           </fieldset>
 
           {/* Back Link */}
-          <div className="border-t border-zinc-200 pt-4 text-center">
-            <Link href="/config" className="text-xs text-violet-700 underline decoration-violet-300 underline-offset-2 hover:text-violet-900">
+          <div className="border-t border-[var(--md-outline)] pt-4 text-center">
+            <Link href="/config" className="text-xs text-[var(--md-primary)] underline decoration-[var(--md-outline-strong)] underline-offset-2 hover:text-[#1f3da9]">
               Back to config
             </Link>
           </div>

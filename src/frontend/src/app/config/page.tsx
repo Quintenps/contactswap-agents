@@ -1,18 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import type { ListFormsResponse, OwnerCardStatusResponse } from '@contactswap/shared';
 import { API_SECRET_STORAGE_KEY, ApiClientError, api } from '../../lib/api';
 
 type AuthState = 'checking' | 'unauthenticated' | 'authenticated';
-type ThemeMode = 'light' | 'dark';
-
-const THEME_STORAGE_KEY = 'contactswap_config_theme';
 
 export default function ConfigPage() {
   const [authState, setAuthState] = useState<AuthState>('checking');
-  const [themeMode, setThemeMode] = useState<ThemeMode>('light');
   const [secretInput, setSecretInput] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [authError, setAuthError] = useState('');
@@ -31,13 +27,6 @@ export default function ConfigPage() {
   const FORMS_LIMIT = 10;
 
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (storedTheme === 'light' || storedTheme === 'dark') {
-      setThemeMode(storedTheme);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setThemeMode('dark');
-    }
-
     const storedSecret = window.localStorage.getItem(API_SECRET_STORAGE_KEY)?.trim();
 
     if (!storedSecret) {
@@ -57,12 +46,6 @@ export default function ConfigPage() {
       void refreshDashboard(apiSecret);
     }
   }, [formsOffset]);
-
-
-  function setTheme(mode: ThemeMode) {
-    setThemeMode(mode);
-    window.localStorage.setItem(THEME_STORAGE_KEY, mode);
-  }
 
   async function authenticateWithSecret(
     nextSecret: string,
@@ -231,7 +214,7 @@ export default function ConfigPage() {
     }
   }
 
-  const tone = useMemo(() => buildTone(themeMode), [themeMode]);
+  const tone = buildTone();
 
   if (authState === 'checking') {
     return (
@@ -253,17 +236,13 @@ export default function ConfigPage() {
       <main className={`min-h-screen px-5 py-10 ${tone.page}`}>
         <section className="mx-auto grid min-h-[72vh] max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
-            <p className={`text-xs uppercase tracking-[0.18em] ${tone.mutedText}`}>Soft Studio</p>
+            <p className={`text-xs uppercase tracking-[0.18em] ${tone.mutedText}`}>Material Workspace</p>
             <h1 className={`mt-3 max-w-2xl text-5xl font-semibold leading-tight ${tone.strongText}`}>
-              Pastel light and slate-blue dark, with a cleaner admin rhythm.
+              A refined admin flow with elevated surfaces and clearer hierarchy.
             </h1>
             <p className={`mt-5 max-w-xl text-sm leading-7 ${tone.mutedText}`}>
-              Forms are table-forward. Actions live in a focused side rail. Mono typography keeps it technical and calm.
+              Forms stay table-forward, while actions live in focused panels that feel predictable and easy to scan.
             </p>
-            <div className="mt-6 inline-flex gap-2 rounded-xl border p-1">
-              <ThemeChip active={themeMode === 'light'} onClick={() => setTheme('light')}>Pastel Light</ThemeChip>
-              <ThemeChip active={themeMode === 'dark'} onClick={() => setTheme('dark')}>Slate Blue Dark</ThemeChip>
-            </div>
           </div>
 
           <form className={`rounded-3xl border p-7 ${tone.card}`} onSubmit={handleSubmit}>
@@ -294,7 +273,7 @@ export default function ConfigPage() {
   return (
     <main className={`min-h-screen px-5 py-8 ${tone.page}`}>
       <section className="mx-auto max-w-7xl space-y-5">
-        <header className={`rounded-3xl border p-5 ${tone.card}`}>
+        <header className={`rounded-3xl border p-5 shadow-sm ${tone.card}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className={`text-xs uppercase tracking-[0.18em] ${tone.mutedText}`}>Config Workspace</p>
@@ -302,10 +281,6 @@ export default function ConfigPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex gap-1 rounded-xl border p-1">
-                <ThemeChip active={themeMode === 'light'} onClick={() => setTheme('light')}>Light</ThemeChip>
-                <ThemeChip active={themeMode === 'dark'} onClick={() => setTheme('dark')}>Dark</ThemeChip>
-              </div>
               <button type="button" onClick={() => void refreshDashboard()} disabled={isRefreshing} className={`rounded-xl px-3 py-2 text-xs ${tone.secondaryButton}`}>
                 {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </button>
@@ -319,8 +294,8 @@ export default function ConfigPage() {
         {dashboardError ? <p className={`rounded-xl border px-3 py-2 text-sm ${tone.errorBox}`}>{dashboardError}</p> : null}
 
         <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-          <section className={`rounded-3xl border ${tone.card}`}>
-            <div className="flex items-center justify-between border-b px-5 py-4">
+          <section className={`overflow-hidden rounded-3xl border shadow-sm ${tone.card}`}>
+            <div className={`flex items-center justify-between border-b px-5 py-4 ${tone.sectionBand}`}>
               <div>
                 <p className={`text-xs uppercase tracking-[0.18em] ${tone.mutedText}`}>Forms</p>
                 <p className={`mt-1 text-sm ${tone.mutedText}`}>All submissions.</p>
@@ -328,7 +303,7 @@ export default function ConfigPage() {
               <span className={`rounded-lg border px-2 py-1 text-xs ${tone.badge}`}>{formsResponse?.total ?? 0} total</span>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className={`overflow-x-auto ${tone.sectionBody}`}>
               <table className="min-w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className={`${tone.tableHead}`}>
@@ -346,7 +321,7 @@ export default function ConfigPage() {
                       <tr key={form.id} className={`border-t ${tone.tableRow}`}>
                         <td className="px-4 py-3">{form.originalContactName}</td>
                         <td className="px-4 py-3">
-                          <span className={`rounded-md border px-2 py-1 ${statusCellClassName(form.status, themeMode)}`}>{form.status}</span>
+                          <span className={`rounded-md border px-2 py-1 ${statusCellClassName(form.status)}`}>{form.status}</span>
                         </td>
                         <td className="px-4 py-3">{formatDate(form.createdAt)}</td>
                         <td className="px-4 py-3">{formatRelativeTime(form.expiresAt)}</td>
@@ -358,7 +333,7 @@ export default function ConfigPage() {
                             type="button"
                             onClick={() => void handleDeleteForm(form.id)}
                             disabled={deletingFormId === form.id}
-                            className={`rounded-md px-2 py-1 text-xs transition ${deletingFormId === form.id ? 'opacity-60' : `${themeMode === 'dark' ? 'text-rose-300 hover:bg-rose-900/20' : 'text-rose-600 hover:bg-rose-50'}`}`}
+                            className={`rounded-md px-2 py-1 text-xs transition ${deletingFormId === form.id ? 'opacity-60' : 'text-rose-600 hover:bg-rose-50'}`}
                           >
                             {deletingFormId === form.id ? 'Deleting...' : 'Delete'}
                           </button>
@@ -376,7 +351,7 @@ export default function ConfigPage() {
               </table>
             </div>
 
-            <div className="border-t px-5 py-3 text-xs">
+            <div className={`border-t px-5 py-3 text-xs ${tone.sectionBand}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className={`${tone.mutedText}`}>
                   Page {formsResponse ? Math.floor(formsOffset / FORMS_LIMIT) + 1 : 1} of {formsResponse ? Math.ceil(formsResponse.total / FORMS_LIMIT) || 1 : 1} • {formsResponse?.total ?? 0} total
@@ -402,7 +377,7 @@ export default function ConfigPage() {
               </div>
             </div>
 
-            <div className="border-t px-5 py-4 text-xs">
+            <div className={`border-t px-5 py-4 text-xs ${tone.sectionBand}`}>
               <Link className={`${tone.link}`} href="/config/templates">
                 Open template management
               </Link>
@@ -410,10 +385,10 @@ export default function ConfigPage() {
           </section>
 
           <aside className="space-y-5">
-            <section className={`rounded-3xl border p-5 ${tone.card}`}>
+            <section className={`rounded-3xl border p-5 shadow-sm ${tone.card}`}>
               <p className={`text-xs uppercase tracking-[0.18em] ${tone.mutedText}`}>Actions</p>
 
-              <div className="mt-4 space-y-3">
+              <div className={`mt-4 space-y-3 rounded-2xl border p-4 ${tone.sectionInset}`}>
                 <button type="button" onClick={() => setShowUploadPanel((v) => !v)} className={`w-full rounded-xl px-4 py-2 text-xs font-semibold transition ${tone.primaryButton}`}>
                   {showUploadPanel ? 'Close' : 'Upload Owner Card'}
                 </button>
@@ -423,7 +398,7 @@ export default function ConfigPage() {
               </div>
 
               {showUploadPanel ? (
-                <form className="mt-3 space-y-3 border-t pt-3" onSubmit={handleOwnerCardUpload}>
+                <form className={`mt-3 space-y-3 rounded-2xl border p-4 ${tone.sectionInset}`} onSubmit={handleOwnerCardUpload}>
                   <div className={`rounded-2xl border p-3 ${tone.inputWrap}`}>
                     <label className={`block text-xs uppercase tracking-[0.12em] ${tone.mutedText}`}>VCF File</label>
                     <input
@@ -442,39 +417,21 @@ export default function ConfigPage() {
               ) : null}
             </section>
 
-            <section className={`rounded-3xl border p-5 ${tone.card}`}>
+            <section className={`rounded-3xl border p-5 shadow-sm ${tone.card}`}>
               <p className={`text-xs uppercase tracking-[0.18em] ${tone.mutedText}`}>Owner Card</p>
-              <h3 className={`mt-2 text-sm font-semibold ${tone.strongText}`}>
-                {ownerCardStatus?.configured ? '✓ Configured' : '○ Missing'}
-              </h3>
-              <p className={`mt-2 text-xs ${tone.mutedText}`}>
-                {ownerCardStatus?.updatedAt ? `Updated ${formatDate(ownerCardStatus.updatedAt)}` : 'Upload your VCF file to enable return-card flow.'}
-              </p>
+              <div className={`mt-4 rounded-2xl border p-4 ${tone.sectionInset}`}>
+                <h3 className={`text-sm font-semibold ${tone.strongText}`}>
+                  {ownerCardStatus?.configured ? '✓ Configured' : '○ Missing'}
+                </h3>
+                <p className={`mt-2 text-xs ${tone.mutedText}`}>
+                  {ownerCardStatus?.updatedAt ? `Updated ${formatDate(ownerCardStatus.updatedAt)}` : 'Upload your VCF file to enable return-card flow.'}
+                </p>
+              </div>
             </section>
           </aside>
         </div>
       </section>
     </main>
-  );
-}
-
-function ThemeChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-lg px-3 py-2 text-xs transition ${active ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-600 hover:text-zinc-900'}`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -542,51 +499,29 @@ function formatRelativeTime(value: string): string {
   return 'Less than a minute';
 }
 
-function buildTone(themeMode: ThemeMode) {
-  if (themeMode === 'dark') {
-    return {
-      page: 'bg-[radial-gradient(circle_at_top,_#283252_0%,_#11162b_35%,_#0c1020_70%)] text-slate-100',
-      card: 'border-slate-700/70 bg-slate-900/75 backdrop-blur',
-      strongText: 'text-slate-100',
-      mutedText: 'text-slate-300/80',
-      input: 'border-slate-600 bg-slate-950/70 text-slate-100 focus:border-violet-300',
-      inputWrap: 'border-slate-600 bg-slate-950/60',
-      primaryButton: 'bg-violet-200 text-slate-950 hover:bg-violet-100 disabled:opacity-60',
-      secondaryButton: 'border border-slate-500/80 text-slate-100 hover:bg-slate-800/70 disabled:opacity-60',
-      tableHead: 'bg-slate-950/70 text-slate-300',
-      tableRow: 'border-slate-700/70 text-slate-100',
-      badge: 'border-slate-500/90 text-slate-200',
-      errorBox: 'border-rose-700/80 bg-rose-900/20 text-rose-200',
-      link: 'text-violet-200 underline decoration-violet-400/60 underline-offset-4',
-      fileInput: 'text-slate-200 file:bg-violet-200 file:text-slate-950 hover:file:bg-violet-100',
-    };
-  }
-
+function buildTone() {
   return {
-    page: 'bg-[radial-gradient(circle_at_top,_#f8eafe_0%,_#f7f9ff_36%,_#f5fffb_78%)] text-zinc-900',
-    card: 'border-zinc-200/80 bg-white/85 backdrop-blur',
-    strongText: 'text-zinc-900',
-    mutedText: 'text-zinc-600',
-    input: 'border-zinc-300 bg-white text-zinc-900 focus:border-violet-500',
-    inputWrap: 'border-zinc-300 bg-zinc-50/80',
-    primaryButton: 'bg-zinc-900 text-zinc-50 hover:bg-zinc-700 disabled:opacity-60',
-    secondaryButton: 'border border-zinc-300 text-zinc-700 hover:bg-violet-50 disabled:opacity-60',
-    tableHead: 'bg-violet-50 text-zinc-700',
-    tableRow: 'border-zinc-200 text-zinc-800',
-    badge: 'border-zinc-300 text-zinc-700',
+    page: 'bg-[radial-gradient(circle_at_top,_#dbe5ff_0%,_#edf1ff_32%,_#f5f8ff_78%)] text-slate-900',
+    card: 'border-indigo-100 bg-white',
+    sectionBand: 'bg-white',
+    sectionBody: 'bg-white',
+    sectionInset: 'border-indigo-100 bg-white',
+    strongText: 'text-slate-900',
+    mutedText: 'text-slate-600',
+    input: 'border-indigo-200 bg-white text-slate-900 focus:border-indigo-500',
+    inputWrap: 'border-indigo-200 bg-indigo-50/70',
+    primaryButton: 'bg-[var(--md-primary)] text-white hover:bg-[#2745b5] disabled:opacity-60',
+    secondaryButton: 'border border-indigo-200 text-slate-700 hover:bg-indigo-50 disabled:opacity-60',
+    tableHead: 'bg-indigo-50 text-slate-700',
+    tableRow: 'border-indigo-100 text-slate-800',
+    badge: 'border-indigo-200 text-slate-700',
     errorBox: 'border-rose-200 bg-rose-50 text-rose-700',
-    link: 'text-violet-700 underline decoration-violet-300 underline-offset-4',
-    fileInput: 'text-zinc-600 file:bg-zinc-900 file:text-zinc-50 hover:file:bg-zinc-700',
+    link: 'text-[var(--md-primary)] underline decoration-indigo-300 underline-offset-4',
+    fileInput: 'text-slate-600 file:bg-[var(--md-primary)] file:text-white hover:file:bg-[#2745b5]',
   };
 }
 
-function statusCellClassName(status: string, themeMode: ThemeMode): string {
-  if (themeMode === 'dark') {
-    if (status === 'completed') return 'border-emerald-700/80 bg-emerald-900/20 text-emerald-300';
-    if (status === 'expired') return 'border-amber-700/80 bg-amber-900/20 text-amber-300';
-    return 'border-sky-700/80 bg-sky-900/20 text-sky-300';
-  }
-
+function statusCellClassName(status: string): string {
   if (status === 'completed') return 'border-emerald-300 bg-emerald-50 text-emerald-700';
   if (status === 'expired') return 'border-amber-300 bg-amber-50 text-amber-700';
   return 'border-sky-300 bg-sky-50 text-sky-700';
