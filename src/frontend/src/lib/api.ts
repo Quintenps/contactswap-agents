@@ -2,7 +2,13 @@
  * API Client
  */
 
-import type { ListFormsQuery, ListFormsResponse, OwnerCardStatusResponse } from '@contactswap/shared';
+import type {
+  CreateFormResponse,
+  ListTemplatesResponse,
+  ListFormsQuery,
+  ListFormsResponse,
+  OwnerCardStatusResponse,
+} from '@contactswap/shared';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 const API_SECRET_HEADER = 'x-api-secret';
@@ -89,6 +95,11 @@ export const api = {
       apiSecret,
     });
   },
+  listTemplates(apiSecret: string) {
+    return requestJson<ListTemplatesResponse>('/v1/config/templates', {
+      apiSecret,
+    });
+  },
   listForms(apiSecret: string, query: ListFormsQuery = {}) {
     return requestJson<ListFormsResponse>(`/v1/forms${toQueryString(query)}`, {
       apiSecret,
@@ -102,6 +113,17 @@ export const api = {
       headers: {
         'Content-Type': 'text/vcard',
       },
+    });
+  },
+  createForm(apiSecret: string, file: File, templateId: string) {
+    const body = new FormData();
+    body.set('vcf', file);
+    body.set('templateId', templateId);
+
+    return requestJson<CreateFormResponse>('/v1/forms', {
+      method: 'POST',
+      apiSecret,
+      body,
     });
   },
   deleteForm(apiSecret: string, formId: string) {

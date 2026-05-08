@@ -52,3 +52,15 @@ export interface OwnerCardStatusResponse {
   updatedAt?: string;
 }
 
+export interface TemplateSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  isDefault: boolean;
+  fields: Array<{ fieldKey: string; required: boolean }>;
+}
+
+export interface ListTemplatesResponse {
+  templates: TemplateSummary[];
+}
+
