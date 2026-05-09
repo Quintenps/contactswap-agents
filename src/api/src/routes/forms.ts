@@ -194,11 +194,21 @@ formRoutes.post('/:token/answer', async (c) => {
   }
 
   try {
-    const response = await answerForm(c.env.D1, {
-      token: tokenParsed.data.token,
-      fields: bodyParsed.data.fields,
-      photo: bodyParsed.data.photo,
-    });
+    const response = await answerForm(
+      c.env.D1,
+      {
+        token: tokenParsed.data.token,
+        fields: bodyParsed.data.fields,
+        photo: bodyParsed.data.photo,
+      },
+      c.env.MAILERSEND_ENABLED === 'true'
+        ? {
+            apiKey: c.env.MAILERSEND_API_KEY,
+            mailFrom: c.env.MAILERSEND_EMAIL_FROM,
+            ownerEmail: c.env.MAILERSEND_EMAIL_TO,
+          }
+        : undefined,
+    );
 
     return c.json(response, 200);
   } catch (error) {
