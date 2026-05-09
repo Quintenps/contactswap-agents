@@ -75,6 +75,9 @@ GET {{baseUrl}}/v1/forms/{{createForm.response.body.$.token}}
 ### Answer form (public)
 # @name answerForm
 # Run the create + retrieve requests first, then submit an answer.
+# On success (200), a .vcf attachment email is sent via MailerSend to MAILERSEND_EMAIL_TO.
+# Email delivery only runs when MAILERSEND_ENABLED="true" in wrangler.toml / .dev.vars.
+# Email delivery failures are logged but do not affect the response status.
 POST {{baseUrl}}/v1/forms/{{createForm.response.body.$.token}}/answer
 Content-Type: application/json
 
