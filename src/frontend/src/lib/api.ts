@@ -3,7 +3,10 @@
  */
 
 import type {
+  AnswerFormResponse,
   CreateFormResponse,
+  FormData,
+  FormSubmission,
   ListTemplatesResponse,
   ListFormsQuery,
   ListFormsResponse,
@@ -135,6 +138,28 @@ export const api = {
         throw await buildApiError(response);
       }
     });
+  },
+  getPublicForm(token: string) {
+    return requestJson<FormData>(`/v1/forms/${encodeURIComponent(token)}`);
+  },
+  answerPublicForm(token: string, submission: FormSubmission) {
+    return requestJson<AnswerFormResponse>(`/v1/forms/${encodeURIComponent(token)}/answer`, {
+      method: 'POST',
+      body: JSON.stringify(submission),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  },
+  getReturnCardDownloadUrl(token: string, retrieveToken: string) {
+    const safeToken = encodeURIComponent(token);
+    const safeRetrieveToken = encodeURIComponent(retrieveToken);
+    return `${API_URL}/v1/forms/${safeToken}/return-card?rt=${safeRetrieveToken}`;
+  },
+  getReturnCardQrUrl(token: string, retrieveToken: string) {
+    const safeToken = encodeURIComponent(token);
+    const safeRetrieveToken = encodeURIComponent(retrieveToken);
+    return `${API_URL}/v1/forms/${safeToken}/return-card-qr?rt=${safeRetrieveToken}`;
   },
 };
 

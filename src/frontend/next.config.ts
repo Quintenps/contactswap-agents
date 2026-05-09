@@ -1,7 +1,9 @@
 import type { NextConfig } from 'next';
 
+const useStaticExport = process.env.NEXT_STATIC_EXPORT === '1';
+
 const nextConfig: NextConfig = {
-  output: 'export',
+  output: useStaticExport ? 'export' : undefined,
   trailingSlash: true,
   images: {
     unoptimized: true,

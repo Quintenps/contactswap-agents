@@ -21,6 +21,7 @@
 		--md-text: #17203a;
 		--md-muted: #566084;
 		--md-success: #0e8a61;
+		--md-success-soft: #dff5eb;
 		--md-error: #a32e3b;
 
 		--md-shadow-1: 0 2px 6px rgba(21, 32, 69, 0.08);
@@ -158,6 +159,159 @@
 		color: var(--md-text);
 	}
 
+	.form-reveal {
+		animation: form-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+
+	.form-card-float {
+		animation: form-float 7s ease-in-out infinite;
+	}
+
+	.form-card-float-delayed {
+		animation-delay: 800ms;
+	}
+
+	.form-enter {
+		animation: form-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+
+	.form-orb {
+		position: absolute;
+		border-radius: 9999px;
+		filter: blur(8px);
+		opacity: 0.45;
+		pointer-events: none;
+		animation: form-drift 10s ease-in-out infinite;
+	}
+
+	.form-orb-a {
+		top: -1.5rem;
+		right: -2rem;
+		width: 7rem;
+		height: 7rem;
+		background: radial-gradient(circle at 30% 30%, rgba(84, 115, 230, 0.55), rgba(84, 115, 230, 0.08));
+	}
+
+	.form-orb-b {
+		bottom: -2rem;
+		left: -1.5rem;
+		width: 8rem;
+		height: 8rem;
+		background: radial-gradient(circle at 30% 30%, rgba(231, 179, 247, 0.55), rgba(231, 179, 247, 0.08));
+		animation-delay: 1.8s;
+	}
+
+	.done-shell {
+		position: relative;
+		isolation: isolate;
+		overflow: hidden;
+		background:
+			radial-gradient(circle at 8% 8%, rgba(166, 232, 201, 0.36), transparent 34%),
+			radial-gradient(circle at 90% 20%, rgba(163, 226, 242, 0.28), transparent 30%);
+	}
+
+	.done-card {
+		z-index: 1;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(245, 255, 250, 0.95));
+	}
+
+	.done-emoji-cloud {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		z-index: 0;
+	}
+
+	.done-panel {
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(225, 249, 238, 0.65));
+	}
+
+	.done-time-chip {
+		color: #0b7b56;
+		border: 1px solid rgba(11, 123, 86, 0.25);
+		background: rgba(211, 246, 230, 0.7);
+	}
+
+	.done-download-button {
+		background: linear-gradient(135deg, #1f9f74, #0d7f57);
+		color: #ffffff;
+		box-shadow: 0 10px 24px rgba(13, 127, 87, 0.28);
+	}
+
+	.done-download-button:hover {
+		transform: translateY(-1px);
+		filter: brightness(1.03);
+	}
+
+	.done-emoji {
+		position: absolute;
+		opacity: 0.9;
+		pointer-events: none;
+		animation: done-emoji-float 4.4s ease-in-out infinite;
+		filter: drop-shadow(0 4px 8px rgba(7, 54, 38, 0.1));
+	}
+
+	.done-emoji-xs {
+		font-size: 1.28rem;
+	}
+
+	.done-emoji-sm {
+		font-size: 1.62rem;
+	}
+
+	.done-emoji-md {
+		font-size: 2.1rem;
+	}
+
+	.done-emoji-lg {
+		font-size: 2.7rem;
+	}
+
+	.done-emoji-a {
+		top: 16%;
+		left: 45%;
+	}
+
+	.done-emoji-b {
+		top: 21%;
+		left: 51%;
+		animation-delay: 700ms;
+	}
+
+	.done-emoji-c {
+		top: 14%;
+		left: 56%;
+		animation-delay: 1200ms;
+	}
+
+	.done-emoji-d {
+		top: 24%;
+		left: 60%;
+		animation-delay: 450ms;
+	}
+
+	.done-emoji-e {
+		top: 28%;
+		left: 49%;
+		animation-delay: 1500ms;
+	}
+
+	.done-emoji-f {
+		top: 19%;
+		left: 54%;
+		animation-delay: 2100ms;
+	}
+
+	@media (max-width: 767px) {
+		.done-emoji-a { top: 14%; left: 37%; }
+		.done-emoji-b { top: 20%; left: 49%; }
+		.done-emoji-c { top: 16%; left: 62%; }
+		.done-emoji-d { top: 24%; left: 67%; }
+		.done-emoji-e { top: 28%; left: 44%; }
+		.done-emoji-f { top: 21%; left: 56%; }
+	}
+
 	.config-loading-line {
 		height: 3px;
 		width: min(220px, 100%);
@@ -181,6 +335,65 @@
 	100% {
 		background-position: -200% 0;
 		opacity: 0.55;
+	}
+}
+
+@keyframes form-reveal {
+	from {
+		opacity: 0;
+		transform: translateY(12px) scale(0.99);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes form-enter {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes form-float {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+
+	50% {
+		transform: translateY(-4px);
+	}
+}
+
+@keyframes form-drift {
+	0%,
+	100% {
+		transform: translate3d(0, 0, 0) scale(1);
+	}
+
+	50% {
+		transform: translate3d(0, -8px, 0) scale(1.02);
+	}
+}
+
+@keyframes done-emoji-float {
+	0%,
+	100% {
+		transform: translateY(0) rotate(0deg);
+		opacity: 0.8;
+	}
+
+	50% {
+		transform: translateY(-8px) rotate(4deg);
+		opacity: 1;
 	}
 }
 

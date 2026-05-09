@@ -329,14 +329,24 @@ export default function ConfigPage() {
                           <span className="inline-block max-w-[180px] truncate align-bottom text-[0.7rem]">{form.token}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            onClick={() => void handleDeleteForm(form.id)}
-                            disabled={deletingFormId === form.id}
-                            className={`rounded-md px-2 py-1 text-xs transition ${deletingFormId === form.id ? 'opacity-60' : 'text-rose-600 hover:bg-rose-50'}`}
-                          >
-                            {deletingFormId === form.id ? 'Deleting...' : 'Delete'}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={`/forms/${form.token}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-md px-2 py-1 text-xs text-[var(--md-primary)] transition hover:bg-[var(--md-primary-container)]"
+                            >
+                              View
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteForm(form.id)}
+                              disabled={deletingFormId === form.id}
+                              className={`rounded-md px-2 py-1 text-xs transition ${deletingFormId === form.id ? 'opacity-60' : 'text-rose-600 hover:bg-rose-50'}`}
+                            >
+                              {deletingFormId === form.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
