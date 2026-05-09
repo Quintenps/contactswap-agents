@@ -124,7 +124,7 @@ When you upload a contact to create a form:
 ### MVP Scope
 
 - **Single requester** — You (Quinten) are always the requester. No multi-user support needed for MVP.
-- **Your contact is pre-configured** — Your VCF is stored once, not uploaded per form.
+- **Your contact is pre-configured** — Your VCF is uploaded once via the `/config` page and stored in R2 under the fixed key `owner/card.vcf`. It is served to recipients after a successful form exchange.
 - **One form per contact** — Each unique URL is for one person to update their info.
 - **30-day form expiration** — Forms expire 30 days after creation. Expired forms show a friendly error.
 - **International support** — Support non-Latin names, international phone formats, and addresses.
@@ -928,6 +928,131 @@ Prevent abuse of form creation and submission:
 
 ---
 
+## Design System
+
+The admin UI (/config and /config/create-form) uses a consistent light/dark theme system powered by a centralized color palette.
+
+### Theme Architecture
+
+**Storage:** Theme preference persisted in localStorage with key `contactswap_config_theme`
+- Defaults to `'light'` on first visit
+- User toggles theme via UI button (Light/Dark chips)
+- Preference syncs across pages using localStorage
+
+### Color Palettes
+
+#### Light Theme
+- **Background:** `bg-[radial-gradient(circle_at_top,_#f8eafe_0%,_#f7f9ff_36%,_#f5fffb_78%)]` text-zinc-900
+  - Subtle gradient from lavender to white to mint
+  - High contrast for readability
+- **Cards:** `border-zinc-200/80 bg-white/85 backdrop-blur`
+  - Semi-transparent white with subtle border
+  - Blurred backdrop for depth
+- **Primary Button:** `bg-zinc-900 text-zinc-50 hover:bg-zinc-700`
+  - High contrast dark button on light background
+  - Used for primary actions (Create, Submit)
+- **Secondary Button:** `border border-zinc-300 text-zinc-700 hover:bg-violet-50`
+  - Outlined style with subtle hover background
+  - Used for alternate actions (Cancel, Back)
+- **Text — Strong:** `text-zinc-900` (headings, labels)
+- **Text — Muted:** `text-zinc-600` (descriptions, hints)
+- **Input Field:** `border-zinc-300 bg-white text-zinc-900 focus:border-violet-500`
+  - Violet accent on focus for interactive feedback
+  - Clean white background
+- **Error Box:** `border-rose-200 bg-rose-50 text-rose-700`
+  - Soft rose for accessibility without harsh red
+- **Success/Accent:** `border-violet-200 bg-violet-50 text-violet-700`
+  - Violet used as accent for status badges, required field indicators
+- **Links:** `text-violet-700 underline decoration-violet-300 underline-offset-4`
+  - Violet with minimal underline decoration
+
+#### Dark Theme
+- **Background:** `bg-[radial-gradient(circle_at_top,_#283252_0%,_#11162b_35%,_#0c1020_70%)] text-slate-100`
+  - Deep blue to dark gradient
+  - Reduces eye strain in low-light environments
+- **Cards:** `border-slate-700/70 bg-slate-900/75 backdrop-blur`
+  - Semi-transparent dark with subtle border
+- **Primary Button:** `bg-violet-200 text-slate-950 hover:bg-violet-100`
+  - Light violet button with dark text
+  - Maintains contrast against dark background
+- **Secondary Button:** `border border-slate-500/80 text-slate-100 hover:bg-slate-800/70`
+  - Subtle outlined button
+- **Text — Strong:** `text-slate-100` (headings, labels)
+- **Text — Muted:** `text-slate-300/80` (descriptions, hints)
+- **Input Field:** `border-slate-600 bg-slate-950/70 text-slate-100 focus:border-violet-300`
+  - Violet-300 accent on focus
+  - Semi-transparent dark background
+- **Error Box:** `border-rose-700/80 bg-rose-900/20 text-rose-200`
+  - Muted rose for dark mode readability
+- **Success/Accent:** `border-emerald-700/80 bg-emerald-900/20 text-emerald-300`
+  - Emerald accent in dark mode (contrasts with violet in light)
+- **Links:** `text-violet-200 underline decoration-violet-400/60 underline-offset-4`
+  - Lighter violet for readability
+
+### Component Patterns
+
+**Form Layout:**
+- Container: `max-w-md` (readable width)
+- Spacing: `space-y-6` for major sections, `space-y-2` for related groups
+- Rounded corners: `rounded-2xl` (cards), `rounded-lg` (inputs, buttons)
+- Borders: 1-2px with theme-specific opacity
+
+**Buttons:**
+- Primary: Dark on light, light on dark, always high-contrast
+- Disabled: `disabled:opacity-60` with `disabled:cursor-not-allowed`
+- Transition: `transition hover:` for smooth state changes
+
+**Input Fields:**
+- Border visible in all states (not just on focus)
+- Focus: Colored border (violet) + subtle ring
+- File inputs: Custom `file:` pseudoelement styling for consistency
+
+**Status Indicators:**
+- Required fields: Violet pills with dot indicator
+- Optional fields: Zinc pills with "○" indicator
+- Errors: Rose/rose-900 depending on theme
+- Success: Brief confirmation message with form reset option
+
+### Applying Theme to New Components
+
+When building new admin UI pages, follow this pattern:
+
+```typescript
+const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+const THEME_STORAGE_KEY = 'contactswap_config_theme';
+
+// Load theme on mount
+useEffect(() => {
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === 'light' || stored === 'dark') {
+    setThemeMode(stored);
+  }
+}, []);
+
+// Apply theme to page background and text
+<main className={`flex min-h-screen ${
+  themeMode === 'dark'
+    ? 'bg-[radial-gradient(circle_at_top,_#283252_0%,_#11162b_35%,_#0c1020_70%)] text-slate-100'
+    : 'bg-[radial-gradient(circle_at_top,_#f8eafe_0%,_#f7f9ff_36%,_#f5fffb_78%)] text-zinc-900'
+}`}
+```
+
+### Consistency Checklist
+
+- [ ] Page background gradient matches theme
+- [ ] All text uses theme-specific colors (`text-zinc-900` or `text-slate-100`)
+- [ ] Buttons use correct theme colors (primary + secondary)
+- [ ] Input focus state shows violet accent (both themes)
+- [ ] Error messages use theme-specific rose colors
+- [ ] Success states use theme-appropriate accent colors
+- [ ] Links use violet (primary) or theme-adapted links
+- [ ] Theme persists in localStorage
+- [ ] Theme toggle UI visible (if intended)
+- [ ] No hardcoded colors outside theme palette
+- [ ] Tested in both light and dark modes
+
+---
+
 ## Accessibility
 
 The form UI should meet **WCAG 2.1 AA** standards:
@@ -1022,7 +1147,7 @@ The form UI should meet **WCAG 2.1 AA** standards:
 - [ ] CORS configured for `contactswap.app` ↔ `api.contactswap.app`
 - [ ] Rate limiting enabled
 - [ ] Default templates seeded in database
-- [ ] Your contact VCF uploaded to config
+- [ ] Your contact VCF uploaded via `/config` page (stored in R2 as `owner/card.vcf`)
 
 ### Post-Launch
 

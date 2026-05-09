@@ -12,12 +12,14 @@
 
 import { Hono } from 'hono';
 import { z } from 'zod';
+import qrcode from 'qrcode-generator';
 import type { Env } from '../types/env';
 import { requireApiSecret } from '../middleware/require-api-secret';
 import { createForm, CreateFormServiceError } from '../services/create-form';
 import { deleteFormById, getFormByToken, getFormForDelete, listFormRecords } from '../repositories/form-repository';
-import { deleteObjectsByPrefix } from '../repositories/contact-file-repository';
+import { deleteObjectsByPrefix, getOwnerVcf } from '../repositories/contact-file-repository';
 import { answerForm, AnswerFormError } from '../services/answer-form';
+import { getExchangeTokenByHash, getFormIdByToken } from '../repositories/exchange-token-repository';
 
 type AppEnv = { Bindings: Env };
 
@@ -216,3 +218,127 @@ formRoutes.post('/:token/answer', async (c) => {
     throw error;
   }
 });
+
+const retrieveTokenQuerySchema = z.object({
+  rt: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/, 'rt must be a 64-character lowercase hex string'),
+});
+
+formRoutes.get('/:token/return-card', async (c) => {
+  const tokenParsed = formTokenParamSchema.safeParse(c.req.param());
+  if (!tokenParsed.success) {
+    const issue = tokenParsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Invalid token' }, 422);
+  }
+
+  const queryParsed = retrieveTokenQuerySchema.safeParse(c.req.query());
+  if (!queryParsed.success) {
+    const issue = queryParsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Missing or invalid rt parameter' }, 422);
+  }
+
+  const validation = await validateExchangeTokenForForm(
+    c.env.D1,
+    tokenParsed.data.token,
+    queryParsed.data.rt,
+  );
+  if (!validation.ok) {
+    return c.json({ error: validation.error }, validation.status);
+  }
+
+  const obj = await getOwnerVcf(c.env.R2);
+  if (!obj) {
+    return c.json({ error: 'Owner card not configured' }, 503);
+  }
+
+  return new Response(obj.body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/vcard',
+      'Content-Disposition': 'attachment; filename="contactswap-admin.vcf"',
+      'Cache-Control': 'no-store',
+    },
+  });
+});
+
+formRoutes.get('/:token/return-card-qr', async (c) => {
+  const tokenParsed = formTokenParamSchema.safeParse(c.req.param());
+  if (!tokenParsed.success) {
+    const issue = tokenParsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Invalid token' }, 422);
+  }
+
+  const queryParsed = retrieveTokenQuerySchema.safeParse(c.req.query());
+  if (!queryParsed.success) {
+    const issue = queryParsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Missing or invalid rt parameter' }, 422);
+  }
+
+  const validation = await validateExchangeTokenForForm(
+    c.env.D1,
+    tokenParsed.data.token,
+    queryParsed.data.rt,
+  );
+  if (!validation.ok) {
+    return c.json({ error: validation.error }, validation.status);
+  }
+
+  const ownerCard = await getOwnerVcf(c.env.R2);
+  if (!ownerCard) {
+    return c.json({ error: 'Owner card not configured' }, 503);
+  }
+
+  const appBase = c.env.PUBLIC_APP_URL.replace(/\/$/, '');
+  const downloadUrl = `${appBase}/v1/forms/${tokenParsed.data.token}/return-card?rt=${queryParsed.data.rt}`;
+
+  const qr = qrcode(0, 'M');
+  qr.addData(downloadUrl);
+  qr.make();
+
+  return new Response(qr.createSvgTag({ cellSize: 6, margin: 2 }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'no-store',
+    },
+  });
+});
+
+interface ExchangeTokenValidationResult {
+  ok: true;
+}
+
+interface ExchangeTokenValidationError {
+  ok: false;
+  status: 401 | 404 | 410;
+  error: string;
+}
+
+async function validateExchangeTokenForForm(
+  db: D1Database,
+  formToken: string,
+  retrieveToken: string,
+): Promise<ExchangeTokenValidationResult | ExchangeTokenValidationError> {
+  const formId = await getFormIdByToken(db, formToken);
+  if (!formId) {
+    return { ok: false, status: 404, error: 'Form not found' };
+  }
+
+  const rawBytes = Uint8Array.from(retrieveToken.match(/.{2}/g)!.map((h) => parseInt(h, 16)));
+  const hashBuffer = await crypto.subtle.digest('SHA-256', rawBytes);
+  const tokenHash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  const record = await getExchangeTokenByHash(db, tokenHash);
+  if (!record || record.formId !== formId) {
+    return { ok: false, status: 401, error: 'Invalid exchange token' };
+  }
+
+  if (record.expiresAt < new Date().toISOString()) {
+    return { ok: false, status: 410, error: 'Exchange token has expired' };
+  }
+
+  return { ok: true };
+}

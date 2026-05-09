@@ -10,6 +10,17 @@ import type { AnswerFormResponse } from '@contactswap/shared';
 import { generateVcf } from '../lib/vcf-generator';
 import { getFormByToken, markFormCompleted } from '../repositories/form-repository';
 import { sendFormAnswerEmail } from './send-form-answer-email';
+import {
+  getFormByToken,
+  markFormCompleted,
+} from '../repositories/form-repository';
+import {
+  getFormIdByToken,
+  insertExchangeToken,
+} from '../repositories/exchange-token-repository';
+
+/** Exchange token TTL in milliseconds (30 minutes) */
+const EXCHANGE_TOKEN_TTL_MS = 30 * 60 * 1000;
 
 /**
  * Photo size constraints (must align with SPEC.md and feature-006)
@@ -123,10 +134,16 @@ export async function answerForm(
   } else {
     console.warn('[answer-form] emailConfig not provided — skipping email delivery');
   }
+  // Issue short-lived exchange token so the recipient can retrieve the admin card
+  const exchangeToken = await issueExchangeToken(db, input.token, now);
 
   return {
     success: true,
     completedAt: now,
+    exchange: {
+      retrieveToken: exchangeToken.rawToken,
+      expiresAt: exchangeToken.expiresAt,
+    },
   };
 }
 
@@ -193,4 +210,45 @@ function parsePhotoDataUri(dataUri: string): PhotoPayload | null {
     mimeType: match[1].toLowerCase(),
     base64,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Exchange token helpers
+// ---------------------------------------------------------------------------
+
+interface ExchangeTokenResult {
+  rawToken: string;
+  expiresAt: string;
+}
+
+async function issueExchangeToken(
+  db: D1Database,
+  formToken: string,
+  now: string,
+): Promise<ExchangeTokenResult> {
+  const formId = await getFormIdByToken(db, formToken);
+  if (!formId) {
+    throw new Error('Could not find form id for completed form');
+  }
+
+  const rawBytes = crypto.getRandomValues(new Uint8Array(32));
+  const rawToken = Array.from(rawBytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  const hashBuffer = await crypto.subtle.digest('SHA-256', rawBytes);
+  const tokenHash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  const expiresAt = new Date(Date.parse(now) + EXCHANGE_TOKEN_TTL_MS).toISOString();
+
+  await insertExchangeToken(db, {
+    id: crypto.randomUUID(),
+    formId,
+    exchangeTokenHash: tokenHash,
+    expiresAt,
+  });
+
+  return { rawToken, expiresAt };
 }

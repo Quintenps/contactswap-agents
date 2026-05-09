@@ -2,3 +2,185 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+	:root {
+		color-scheme: light;
+		--font-sans: var(--font-nunito-sans), "Avenir Next", Avenir, "Segoe UI", sans-serif;
+		--font-display: var(--font-space-grotesk), "Avenir Next", Avenir, sans-serif;
+
+		--md-primary: #3456d1;
+		--md-on-primary: #ffffff;
+		--md-primary-container: #dfe5ff;
+		--md-secondary: #4f607f;
+		--md-tertiary: #7a4a86;
+		--md-bg: #eef2ff;
+		--md-surface: #f8f9ff;
+		--md-surface-2: #ffffff;
+		--md-outline: #c7cee7;
+		--md-outline-strong: #94a0c6;
+		--md-text: #17203a;
+		--md-muted: #566084;
+		--md-success: #0e8a61;
+		--md-error: #a32e3b;
+
+		--md-shadow-1: 0 2px 6px rgba(21, 32, 69, 0.08);
+		--md-shadow-2: 0 12px 28px rgba(30, 45, 93, 0.14);
+	}
+
+	html,
+	body {
+		min-height: 100%;
+	}
+
+	body {
+		margin: 0;
+		font-family: var(--font-sans);
+		background:
+			radial-gradient(circle at 0% 0%, rgba(126, 147, 244, 0.24), transparent 42%),
+			radial-gradient(circle at 100% 12%, rgba(231, 179, 247, 0.2), transparent 38%),
+			var(--md-bg);
+		color: var(--md-text);
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-display);
+		letter-spacing: -0.02em;
+	}
+}
+
+@layer components {
+	.material-shell {
+		min-height: 100vh;
+		padding: 1.25rem;
+	}
+
+	@media (min-width: 768px) {
+		.material-shell {
+			padding: 2.25rem;
+		}
+	}
+
+	.material-panel {
+		border: 1px solid var(--md-outline);
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 255, 0.92));
+		border-radius: 1.5rem;
+		box-shadow: var(--md-shadow-1);
+	}
+
+	.material-elevated {
+		border: 1px solid rgba(199, 206, 231, 0.72);
+		background: var(--md-surface-2);
+		border-radius: 1.25rem;
+		box-shadow: var(--md-shadow-2);
+	}
+
+	.material-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		border-radius: 9999px;
+		border: 1px solid var(--md-outline);
+		padding: 0.33rem 0.75rem;
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--md-muted);
+		background: rgba(255, 255, 255, 0.75);
+	}
+
+	.material-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 9999px;
+		padding: 0.68rem 1.05rem;
+		font-size: 0.875rem;
+		font-weight: 700;
+		transition: 180ms ease;
+	}
+
+	.material-button-primary {
+		background: linear-gradient(135deg, #4366de, #2f4fc5);
+		color: var(--md-on-primary);
+		box-shadow: 0 8px 20px rgba(57, 84, 191, 0.3);
+	}
+
+	.material-button-primary:hover {
+		transform: translateY(-1px);
+		filter: brightness(1.02);
+	}
+
+	.material-button-secondary {
+		background: rgba(255, 255, 255, 0.82);
+		color: var(--md-primary);
+		border: 1px solid var(--md-outline);
+	}
+
+	.material-button-secondary:hover {
+		border-color: var(--md-outline-strong);
+		background: rgba(255, 255, 255, 0.96);
+	}
+
+	.material-input,
+	.material-select {
+		width: 100%;
+		border-radius: 0.95rem;
+		border: 1px solid var(--md-outline);
+		background: rgba(255, 255, 255, 0.92);
+		padding: 0.72rem 0.88rem;
+		font-size: 0.9rem;
+		color: var(--md-text);
+		outline: none;
+		transition: border-color 160ms ease, box-shadow 160ms ease;
+	}
+
+	.material-input:focus,
+	.material-select:focus {
+		border-color: #5878ea;
+		box-shadow: 0 0 0 3px rgba(80, 108, 224, 0.14);
+	}
+
+	.material-muted {
+		color: var(--md-muted);
+	}
+
+	.material-title {
+		font-size: clamp(1.65rem, 2.8vw, 2.55rem);
+		line-height: 1.1;
+		color: var(--md-text);
+	}
+
+	.config-loading-line {
+		height: 3px;
+		width: min(220px, 100%);
+		border-radius: 9999px;
+		background: linear-gradient(90deg, rgba(69, 98, 219, 0.08), rgba(69, 98, 219, 0.55), rgba(69, 98, 219, 0.08));
+		background-size: 200% 100%;
+		animation: config-shimmer 1.4s ease-in-out infinite;
+	}
+}
+
+@keyframes config-shimmer {
+	0% {
+		background-position: 200% 0;
+		opacity: 0.55;
+	}
+
+	50% {
+		opacity: 1;
+	}
+
+	100% {
+		background-position: -200% 0;
+		opacity: 0.55;
+	}
+}
+

@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:8787
+@apiSecret = contactswap
+@templateId = 550e8400-e29b-41d4-a716-446655440000
+
+### Check owner card status
+GET {{baseUrl}}/v1/config/owner-card
+x-api-secret: {{apiSecret}}
+
+### Upload owner card (VCF file)
+PUT {{baseUrl}}/v1/config/owner-card
+x-api-secret: {{apiSecret}}
+Content-Type: text/vcard
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Elena Martinez
+N:Martinez;Elena;;;
+EMAIL;TYPE=WORK:elena.martinez@northbridge-consulting.com
+TEL;TYPE=CELL:+14155551234
+TEL;TYPE=WORK:+14155559876
+ADR;TYPE=WORK:;;500 Market St Suite 1200;San Francisco;CA;94105;USA
+ORG:Northbridge Consulting
+TITLE:Director of Partnerships
+URL:https://www.northbridge-consulting.com
+END:VCARD
+
+### Retrieve admin card via exchange token (after answering a form)
+# First run: POST /v1/forms/:token/answer to get exchange.retrieveToken
+# Then use that token as the rt query parameter below
+# Example: GET {{baseUrl}}/v1/forms/abc123token/return-card?rt=<retrieved-exchange-token>
+GET {{baseUrl}}/v1/forms/test-token-placeholder/return-card?rt=0000000000000000000000000000000000000000000000000000000000000000

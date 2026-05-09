@@ -39,5 +39,28 @@ export interface ApiError {
 export interface AnswerFormResponse {
   success: true;
   completedAt: string;
+  exchange: ExchangeBlock;
+}
+
+export interface ExchangeBlock {
+  retrieveToken: string;
+  expiresAt: string;
+}
+
+export interface OwnerCardStatusResponse {
+  configured: boolean;
+  updatedAt?: string;
+}
+
+export interface TemplateSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  isDefault: boolean;
+  fields: Array<{ fieldKey: string; required: boolean }>;
+}
+
+export interface ListTemplatesResponse {
+  templates: TemplateSummary[];
 }
 
