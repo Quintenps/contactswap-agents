@@ -49,10 +49,11 @@ Implementation guidance, API contracts, edge cases.
 
 - `api/` — API-related feature specs
 - `frontend/` — Frontend-related feature specs
+- `improvements/` — cross-cutting refactors and quality improvements
 
 | Feature | Status | Assigned |
 |---------|--------|----------|
-| (none yet) | — | — |
+| improvement-001-template-fields | Todo | Unassigned |
 
 ---
 
