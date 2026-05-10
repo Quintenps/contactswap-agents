@@ -133,6 +133,7 @@ export async function answerForm(
   // Resilient email delivery: form completion is authoritative.
   // A delivery failure is logged but does not affect the response.
   if (emailConfig) {
+    console.log(`[answer-form] Sending answer email to ${emailConfig.ownerEmail} (contact: ${contact.fullName})`);
     await sendFormAnswerEmail({
       apiKey: emailConfig.apiKey,
       mailFrom: emailConfig.mailFrom,

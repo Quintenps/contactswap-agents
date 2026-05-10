@@ -142,7 +142,7 @@ export default function FormDonePage() {
               </p>
             ) : null}
 
-            {downloadUrl && canUseReturnCard ? (
+            {!isDesktop && downloadUrl && canUseReturnCard ? (
               <a
                 href={downloadUrl}
                 className="done-download-button material-button mt-1 w-full sm:w-auto"
@@ -184,28 +184,17 @@ export default function FormDonePage() {
           </div>
 
           <div className="space-y-4 text-left">
-            <div className="done-panel rounded-2xl border border-[var(--md-outline)] p-4">
-              <p className="text-sm font-semibold text-[var(--md-text)]">Swap step 2: Save contact 📱</p>
-              <p className="material-muted mt-1 text-xs">
-                {isDesktop
-                  ? 'Scan this QR code with your phone camera to add Quinten directly.'
-                  : 'Use the download button to save Quinten directly to your contacts.'}
-              </p>
-
-              {isDesktop && qrUrl && canUseReturnCard ? (
+            {isDesktop && qrUrl && canUseReturnCard ? (
+              <div className="done-panel relative flex min-h-[17rem] items-center justify-center overflow-hidden rounded-3xl border border-[var(--md-outline)] bg-gradient-to-br from-white via-[var(--md-primary-container)]/45 to-[var(--md-success-soft)] p-6">
+                <div aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[var(--md-primary)]/12 blur-2xl" />
+                <div aria-hidden className="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-[var(--md-success)]/16 blur-2xl" />
                 <img
                   src={qrUrl}
                   alt="QR code for contact download"
-                  className="mt-3 h-52 w-52 rounded-xl border border-[var(--md-outline)] bg-white p-2 shadow-sm"
+                  className="relative h-56 w-56 rounded-2xl border border-[var(--md-outline)]/85 bg-white p-3 shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
                 />
-              ) : null}
-
-              {isDesktop && !canUseReturnCard ? (
-                <p className="mt-3 rounded-xl border border-[var(--md-outline)] bg-white/80 px-3 py-2 text-xs leading-6 text-[var(--md-muted)]">
-                  A valid download token is required before we can show a QR code.
-                </p>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
 
             <div className="rounded-2xl border border-[var(--md-outline)] bg-white/75 p-4">
               <p className="text-sm font-semibold text-[var(--md-text)]">What to do now</p>
