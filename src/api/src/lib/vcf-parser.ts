@@ -55,6 +55,40 @@ function decodeAdr(value: string): string {
 }
 
 /**
+ * Parse a vCard ADR value into structured components.
+ * ADR format: PO Box;Extended;Street;City;Region;Postal Code;Country
+ * Returns: { street, city, state, postalCode, country }
+ */
+function parseAdrStructured(value: string): {
+  street?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+} {
+  const parts = value.split(';').map((p) => p.trim());
+  return {
+    street: parts[2] || undefined,
+    city: parts[3] || undefined,
+    state: parts[4] || undefined,
+    postalCode: parts[5] || undefined,
+    country: parts[6] || undefined,
+  };
+}
+
+/**
+ * Decode escaped vCard text values (RFC 6350 §3.4).
+ * Handles newline, comma, semicolon, and backslash escapes.
+ */
+function decodeTextValue(value: string): string {
+  return value
+    .replace(/\\[nN]/g, '\n')
+    .replace(/\\,/g, ',')
+    .replace(/\\;/g, ';')
+    .replace(/\\\\/g, '\\');
+}
+
+/**
  * Extract MIME type from a vCard 4.0 data URI photo value.
  * e.g. "data:image/jpeg;base64,/9j/..."
  */
@@ -111,16 +145,17 @@ export function parseVcf(raw: string): ParsedVcf {
     const { nameWithParams, value } = parsed;
     const trimmedValue = value.trim();
     if (!trimmedValue) continue;
+    const decodedValue = decodeTextValue(trimmedValue);
 
     // FN — Full Name
     if (nameWithParams === 'FN') {
-      contact.fullName = trimmedValue;
+      contact.fullName = decodedValue;
       continue;
     }
 
     // N — Structured name (Family;Given;Additional;Prefix;Suffix)
     if (nameWithParams === 'N') {
-      const parts = trimmedValue.split(';');
+      const parts = decodedValue.split(';');
       if (parts[0]) contact.lastName = parts[0].trim();
       if (parts[1]) contact.firstName = parts[1].trim();
       continue;
@@ -129,12 +164,12 @@ export function parseVcf(raw: string): ParsedVcf {
     // EMAIL
     if (nameWithParams.startsWith('EMAIL')) {
       if (hasParam(nameWithParams, 'TYPE=WORK')) {
-        if (!contact.workEmail) contact.workEmail = trimmedValue;
+        if (!contact.workEmail) contact.workEmail = decodedValue;
       } else if (hasParam(nameWithParams, 'TYPE=HOME')) {
-        if (!contact.personalEmail) contact.personalEmail = trimmedValue;
+        if (!contact.personalEmail) contact.personalEmail = decodedValue;
       } else if (!hasPersonalEmail) {
         // Bare EMAIL — treat as personal
-        contact.personalEmail = trimmedValue;
+        contact.personalEmail = decodedValue;
         hasPersonalEmail = true;
       }
       continue;
@@ -143,11 +178,11 @@ export function parseVcf(raw: string): ParsedVcf {
     // TEL
     if (nameWithParams.startsWith('TEL')) {
       if (hasParam(nameWithParams, 'TYPE=WORK')) {
-        if (!contact.workPhone) contact.workPhone = trimmedValue;
+        if (!contact.workPhone) contact.workPhone = decodedValue;
       } else if (hasParam(nameWithParams, 'TYPE=CELL') || hasParam(nameWithParams, 'TYPE=MOBILE')) {
-        if (!contact.cellPhone) contact.cellPhone = trimmedValue;
+        if (!contact.cellPhone) contact.cellPhone = decodedValue;
       } else if (hasParam(nameWithParams, 'TYPE=HOME')) {
-        if (!contact.homePhone) contact.homePhone = trimmedValue;
+        if (!contact.homePhone) contact.homePhone = decodedValue;
       }
       continue;
     }
@@ -156,10 +191,21 @@ export function parseVcf(raw: string): ParsedVcf {
     if (nameWithParams.startsWith('ADR')) {
       const decoded = decodeAdr(trimmedValue);
       if (!decoded) continue;
+      const structured = parseAdrStructured(trimmedValue);
       if (hasParam(nameWithParams, 'TYPE=WORK')) {
         if (!contact.workAddress) contact.workAddress = decoded;
+        if (structured.street && !contact.workAddressStreet) contact.workAddressStreet = structured.street;
+        if (structured.city && !contact.workAddressCity) contact.workAddressCity = structured.city;
+        if (structured.state && !contact.workAddressState) contact.workAddressState = structured.state;
+        if (structured.postalCode && !contact.workAddressPostalCode) contact.workAddressPostalCode = structured.postalCode;
+        if (structured.country && !contact.workAddressCountry) contact.workAddressCountry = structured.country;
       } else if (hasParam(nameWithParams, 'TYPE=HOME')) {
         if (!contact.homeAddress) contact.homeAddress = decoded;
+        if (structured.street && !contact.homeAddressStreet) contact.homeAddressStreet = structured.street;
+        if (structured.city && !contact.homeAddressCity) contact.homeAddressCity = structured.city;
+        if (structured.state && !contact.homeAddressState) contact.homeAddressState = structured.state;
+        if (structured.postalCode && !contact.homeAddressPostalCode) contact.homeAddressPostalCode = structured.postalCode;
+        if (structured.country && !contact.homeAddressCountry) contact.homeAddressCountry = structured.country;
       }
       continue;
     }
@@ -167,38 +213,38 @@ export function parseVcf(raw: string): ParsedVcf {
     // ORG
     if (nameWithParams === 'ORG') {
       // ORG can be semicolon-delimited: CompanyName;Department
-      contact.company = trimmedValue.split(';')[0].trim();
+      contact.company = decodedValue.split(';')[0].trim();
       continue;
     }
 
     // TITLE
     if (nameWithParams === 'TITLE') {
-      contact.jobTitle = trimmedValue;
+      contact.jobTitle = decodedValue;
       continue;
     }
 
     // URL
     if (nameWithParams === 'URL' || nameWithParams.startsWith('URL;')) {
-      contact.website = trimmedValue;
+      contact.website = decodedValue;
       continue;
     }
 
     // BDAY
     if (nameWithParams === 'BDAY') {
       // Normalise to YYYY-MM-DD if possible
-      const raw = trimmedValue.replace(/[^\d-]/g, '');
+      const raw = decodedValue.replace(/[^\d-]/g, '');
       if (raw.length === 8 && !raw.includes('-')) {
         // YYYYMMDD → YYYY-MM-DD
         contact.birthday = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
       } else {
-        contact.birthday = trimmedValue;
+        contact.birthday = decodedValue;
       }
       continue;
     }
 
     // NOTE
     if (nameWithParams === 'NOTE') {
-      contact.notes = trimmedValue;
+      contact.notes = decodedValue;
       continue;
     }
 

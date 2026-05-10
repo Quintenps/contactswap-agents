@@ -30,7 +30,9 @@ function fold(line: string): string {
  */
 function encodeAdr(address: string): string {
   // Escape special characters in address value
-  const safe = address.replace(/[\\,;]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+  const safe = address
+    .replace(/[\\,;]/g, (c) => `\\${c}`)
+    .replace(/\r\n|\r|\n/g, '\\n');
   // ;; PO Box ; Extended ; Street ; City ; Region ; Postal ; Country
   return `;;${safe};;;;`;
 }
@@ -40,7 +42,7 @@ function escapePropValue(value: string): string {
     .replace(/\\/g, '\\\\')
     .replace(/,/g, '\\,')
     .replace(/;/g, '\\;')
-    .replace(/\n/g, '\\n');
+    .replace(/\r\n|\r|\n/g, '\\n');
 }
 
 export interface GenerateVcfOptions {

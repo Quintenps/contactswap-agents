@@ -37,7 +37,17 @@ const SUPPORTED_FIELD_KEYS = new Set<string>([
   'cell_phone',
   'home_phone',
   'work_address',
+  'work_address_street',
+  'work_address_city',
+  'work_address_state',
+  'work_address_postal_code',
+  'work_address_country',
   'home_address',
+  'home_address_street',
+  'home_address_city',
+  'home_address_state',
+  'home_address_postal_code',
+  'home_address_country',
   'company',
   'job_title',
   'website',
@@ -123,6 +133,7 @@ export async function answerForm(
   // Resilient email delivery: form completion is authoritative.
   // A delivery failure is logged but does not affect the response.
   if (emailConfig) {
+    console.log(`[answer-form] Sending answer email to ${emailConfig.ownerEmail} (contact: ${contact.fullName})`);
     await sendFormAnswerEmail({
       apiKey: emailConfig.apiKey,
       mailFrom: emailConfig.mailFrom,
@@ -179,7 +190,17 @@ function buildContact(fields: Record<string, string>) {
     cellPhone: fields['cell_phone'] || undefined,
     homePhone: fields['home_phone'] || undefined,
     workAddress: fields['work_address'] || undefined,
+    workAddressStreet: fields['work_address_street'] || undefined,
+    workAddressCity: fields['work_address_city'] || undefined,
+    workAddressState: fields['work_address_state'] || undefined,
+    workAddressPostalCode: fields['work_address_postal_code'] || undefined,
+    workAddressCountry: fields['work_address_country'] || undefined,
     homeAddress: fields['home_address'] || undefined,
+    homeAddressStreet: fields['home_address_street'] || undefined,
+    homeAddressCity: fields['home_address_city'] || undefined,
+    homeAddressState: fields['home_address_state'] || undefined,
+    homeAddressPostalCode: fields['home_address_postal_code'] || undefined,
+    homeAddressCountry: fields['home_address_country'] || undefined,
     company: fields['company'] || undefined,
     jobTitle: fields['job_title'] || undefined,
     website: fields['website'] || undefined,

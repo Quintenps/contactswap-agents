@@ -138,8 +138,16 @@ export default function CreateFormPage() {
       setCopied(true);
     } catch {
       setCopied(false);
-      setErrorMessage('Could not copy URL automatically. Copy it manually from the field.');
+      setErrorMessage('Could not copy URL automatically. Copy it manually from the message box.');
     }
+  }
+
+  function buildShareMessage(url: string): string {
+    return [
+      'Ik heb geen (of incorrecte) gegevens van jou. Ik heb een website gemaakt waarbij ik makkelijk je gegevens in mijn telefoonboek kan verwerken. Na het invullen krijg je mijn gegevens wat je gelijk in je telefoon kan verwerken. Kun je deze even invullen?',
+      '',
+      url,
+    ].join('\n');
   }
 
   function getFieldLabel(fieldKey: string): string {
@@ -181,8 +189,12 @@ export default function CreateFormPage() {
 
             <div className="mt-6 space-y-4">
               <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--md-muted)]">Form URL</p>
-                <p className="break-all rounded-xl border border-[var(--md-outline)] bg-white/88 px-3 py-2 text-xs text-[var(--md-text)]">{success.url}</p>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--md-muted)]">Share Message</p>
+                <textarea
+                  readOnly
+                  value={buildShareMessage(success.url)}
+                  className="h-44 w-full resize-none rounded-xl border border-[var(--md-outline)] bg-white/88 px-3 py-2 text-xs text-[var(--md-text)]"
+                />
                 <p className="material-muted mt-1 text-xs">Expires {formatDate(success.expiresAt)}</p>
               </div>
 

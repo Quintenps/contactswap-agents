@@ -41,7 +41,7 @@ export async function createForm(env: Env, input: CreateFormInput): Promise<Crea
   const id = crypto.randomUUID();
   const originalContactKey = `forms/${token}/original.vcf`;
   const expiresAt = buildExpiryIso();
-  const prefilled = buildPrefilled(contact);
+  const prefilled = buildPrefilled(contact, photoBase64, photoMimeType);
 
   await uploadPhotoIfPresent(env, token, photoBase64, photoMimeType);
   await putOriginalVcf(env.R2, originalContactKey, input.vcfText);
@@ -91,7 +91,7 @@ async function uploadPhotoIfPresent(
   await putContactPhoto(env.R2, `forms/${token}/photo.${ext}`, photoBytes, photoMimeType);
 }
 
-function buildPrefilled(contact: Contact): Record<string, string> {
+function buildPrefilled(contact: Contact, photoBase64: string | null, photoMimeType: string | null): Record<string, string> {
   const prefilled: Record<string, string> = {};
 
   if (contact.fullName) prefilled.full_name = contact.fullName;
@@ -101,12 +101,25 @@ function buildPrefilled(contact: Contact): Record<string, string> {
   if (contact.cellPhone) prefilled.cell_phone = contact.cellPhone;
   if (contact.homePhone) prefilled.home_phone = contact.homePhone;
   if (contact.workAddress) prefilled.work_address = contact.workAddress;
+  if (contact.workAddressStreet) prefilled.work_address_street = contact.workAddressStreet;
+  if (contact.workAddressCity) prefilled.work_address_city = contact.workAddressCity;
+  if (contact.workAddressState) prefilled.work_address_state = contact.workAddressState;
+  if (contact.workAddressPostalCode) prefilled.work_address_postal_code = contact.workAddressPostalCode;
+  if (contact.workAddressCountry) prefilled.work_address_country = contact.workAddressCountry;
   if (contact.homeAddress) prefilled.home_address = contact.homeAddress;
+  if (contact.homeAddressStreet) prefilled.home_address_street = contact.homeAddressStreet;
+  if (contact.homeAddressCity) prefilled.home_address_city = contact.homeAddressCity;
+  if (contact.homeAddressState) prefilled.home_address_state = contact.homeAddressState;
+  if (contact.homeAddressPostalCode) prefilled.home_address_postal_code = contact.homeAddressPostalCode;
+  if (contact.homeAddressCountry) prefilled.home_address_country = contact.homeAddressCountry;
   if (contact.company) prefilled.company = contact.company;
   if (contact.jobTitle) prefilled.job_title = contact.jobTitle;
   if (contact.website) prefilled.website = contact.website;
   if (contact.birthday) prefilled.birthday = contact.birthday;
   if (contact.notes) prefilled.notes = contact.notes;
+  if (photoBase64 && photoMimeType) {
+    prefilled.photo = `data:${photoMimeType};base64,${photoBase64}`;
+  }
 
   return prefilled;
 }

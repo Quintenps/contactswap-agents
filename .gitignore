@@ -20,6 +20,7 @@ out/
 src/api/dist/
 src/shared/dist/
 src/shared/tsconfig.tsbuildinfo
+src/frontend/tsconfig.tsbuildinfo
 
 
 .dev.vars
