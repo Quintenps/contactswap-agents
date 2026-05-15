@@ -17,6 +17,7 @@ out/
 .DS_Store
 
 # Build artifacts
+*.tsbuildinfo
 src/api/dist/
 src/shared/dist/
 src/shared/tsconfig.tsbuildinfo

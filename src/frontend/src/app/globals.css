@@ -62,9 +62,21 @@
 		padding: 1.25rem;
 	}
 
+	.recipient-language-anchor {
+		position: absolute;
+		right: 0.75rem;
+		top: calc(env(safe-area-inset-top, 0px) + 0.45rem);
+		z-index: 20;
+	}
+
 	@media (min-width: 768px) {
 		.material-shell {
 			padding: 2.25rem;
+		}
+
+		.recipient-language-anchor {
+			right: 1rem;
+			top: 1rem;
 		}
 	}
 

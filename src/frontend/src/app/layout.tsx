@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Nunito_Sans, Space_Grotesk } from 'next/font/google';
 import './globals.css';
+import { I18nProvider } from '@/lib/i18n';
 
 const nunitoSans = Nunito_Sans({
   subsets: ['latin'],
@@ -23,8 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${nunitoSans.variable} ${spaceGrotesk.variable}`}>{children}</body>
+    <html lang="nl">
+      <body className={`${nunitoSans.variable} ${spaceGrotesk.variable}`}>
+        <I18nProvider>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

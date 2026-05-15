@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { api } from '../../../../lib/api';
+import { LanguageSwitcher } from '@/lib/language-switcher';
+import { useI18n } from '@/lib/i18n';
 
 export default function FormDonePage() {
+  const { t, locale } = useI18n();
   const params = useParams<{ token: string }>();
   const searchParams = useSearchParams();
   const token = params.token;
@@ -110,7 +113,11 @@ export default function FormDonePage() {
   const canUseReturnCard = retrieveState === 'valid';
 
   return (
-    <main className="material-shell done-shell flex items-center justify-center">
+    <main className="material-shell done-shell relative flex items-center justify-center">
+      <div className="recipient-language-anchor">
+        <LanguageSwitcher />
+      </div>
+
       <div className="done-emoji-cloud" aria-hidden>
         <span className="done-emoji done-emoji-lg done-emoji-a">🎉</span>
         <span className="done-emoji done-emoji-md done-emoji-b">🥳</span>
@@ -129,16 +136,16 @@ export default function FormDonePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </span>
-              <span className="text-xs font-semibold uppercase tracking-[0.14em]">Submission complete</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.14em]">{t('done.badge')}</span>
             </div>
 
-            <h1 className="material-title font-semibold">Your info has been sent 🎉</h1>
-            <p className="text-sm leading-7 text-[var(--md-text)]">Nice. Your details were submitted successfully.</p>
-            <p className="text-sm leading-7 text-[var(--md-muted)]">Now it is time for the swap: grab Quinten's contact below and complete the ContactSwap 🤝</p>
+            <h1 className="material-title font-semibold">{t('done.title')}</h1>
+            <p className="text-sm leading-7 text-[var(--md-text)]">{t('done.body1')}</p>
+            <p className="text-sm leading-7 text-[var(--md-muted)]">{t('done.body2')}</p>
 
             {expiresAt ? (
               <p className="done-time-chip inline-flex rounded-full px-3 py-1 text-xs">
-                Available until {formatDate(expiresAt)}
+                {t('done.availableUntil', { date: formatDate(expiresAt, locale) })}
               </p>
             ) : null}
 
@@ -148,37 +155,37 @@ export default function FormDonePage() {
                 className="done-download-button material-button mt-1 w-full sm:w-auto"
                 download
               >
-                Download Quinten's Contact (.vcf) 📥
+                {t('done.download')}
               </a>
             ) : null}
 
             {retrieveState === 'checking' ? (
               <p className="rounded-xl border border-[var(--md-outline)] bg-white/80 px-3 py-2 text-sm text-[var(--md-muted)]">
-                Verifying your secure download link...
+                {t('done.verify')}
               </p>
             ) : null}
 
             {retrieveState === 'missing' ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                Your download token is missing. Reopen the completion link from the same tab or ask Quinten for a new form link.
+                {t('done.missing')}
               </p>
             ) : null}
 
             {retrieveState === 'invalid' ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                This download token is not valid anymore. Ask Quinten to send a fresh form link, then complete the form again.
+                {t('done.invalid')}
               </p>
             ) : null}
 
             {retrieveState === 'expired' ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                This download token has expired. Ask Quinten to send a new form link so you can complete the swap.
+                {t('done.expired')}
               </p>
             ) : null}
 
             {retrieveState === 'error' ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                We could not verify the download token right now. Refresh this page and try again.
+                {t('done.error')}
               </p>
             ) : null}
           </div>
@@ -190,17 +197,17 @@ export default function FormDonePage() {
                 <div aria-hidden className="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-[var(--md-success)]/16 blur-2xl" />
                 <img
                   src={qrUrl}
-                  alt="QR code for contact download"
+                  alt={t('done.qrAlt')}
                   className="relative h-56 w-56 rounded-2xl border border-[var(--md-outline)]/85 bg-white p-3 shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
                 />
               </div>
             ) : null}
 
             <div className="rounded-2xl border border-[var(--md-outline)] bg-white/75 p-4">
-              <p className="text-sm font-semibold text-[var(--md-text)]">What to do now</p>
-              <p className="mt-2 text-xs leading-6 text-[var(--md-muted)]">1. Download or scan to add Quinten to your contacts.</p>
-              <p className="text-xs leading-6 text-[var(--md-muted)]">2. Confirm the contact card opens with name, email, and phone details.</p>
-              <p className="text-xs leading-6 text-[var(--md-muted)]">3. If the link fails, request a fresh form link and retry.</p>
+              <p className="text-sm font-semibold text-[var(--md-text)]">{t('done.next.title')}</p>
+              <p className="mt-2 text-xs leading-6 text-[var(--md-muted)]">{t('done.next.step1')}</p>
+              <p className="text-xs leading-6 text-[var(--md-muted)]">{t('done.next.step2')}</p>
+              <p className="text-xs leading-6 text-[var(--md-muted)]">{t('done.next.step3')}</p>
             </div>
           </div>
         </div>
@@ -209,11 +216,11 @@ export default function FormDonePage() {
   );
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
     return iso;
   }
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }
 
