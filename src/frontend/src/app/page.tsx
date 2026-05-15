@@ -1,7 +1,13 @@
+'use client';
+
 import Image from 'next/image';
 import { AdminLink } from './_components/admin-link';
+import { useI18n } from '@/lib/i18n';
+import { LanguageSwitcher } from '@/lib/language-switcher';
 
 export default function HomePage() {
+  const { t } = useI18n();
+
   return (
     <main className="material-shell flex items-center justify-center relative overflow-hidden">
       {/* Background photo — drop any image at public/bg.png to change it */}
@@ -19,6 +25,10 @@ export default function HomePage() {
       <div className="home-orb home-orb-1" />
       <div className="home-orb home-orb-2" />
 
+      <div className="recipient-language-anchor">
+        <LanguageSwitcher />
+      </div>
+
       <div className="home-card flex flex-col items-start text-left px-10 py-14 max-w-md w-full relative z-10">
         {/* Swap icon */}
         <div className="home-icon">
@@ -29,10 +39,9 @@ export default function HomePage() {
         </div>
 
         <h1 className="home-title mt-5">ContactSwap</h1>
-        <p className="home-subtitle mt-3">Send yours, get theirs.</p>
+        <p className="home-subtitle mt-3">{t('home.subtitle')}</p>
         <p className="home-description mt-4 text-sm leading-6">
-          Contacts go stale fast. ContactSwap lets you share one secure link so people can update their details in minutes,
-          then instantly receive your contact in return.
+          {t('home.description')}
         </p>
         <AdminLink />
       </div>

@@ -4,36 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { FieldKey, FormData } from '@contactswap/shared';
 import { ApiClientError, api } from '../../../lib/api';
+import { useI18n } from '@/lib/i18n';
+import { LanguageSwitcher } from '@/lib/language-switcher';
 
 type FlowState = 'loading' | 'intro' | 'form' | 'submitting' | 'error';
 type LoadErrorKind = 'not-found' | 'already-submitted' | 'expired' | 'invalid' | 'generic';
-
-const FIELD_LABELS: Record<FieldKey, string> = {
-  full_name: 'Full Name',
-  work_email: 'Work Email',
-  personal_email: 'Personal Email',
-  work_phone: 'Work Phone',
-  cell_phone: 'Cell Phone',
-  home_phone: 'Home Phone',
-  work_address_street: 'Work Street',
-  work_address_city: 'Work City',
-  work_address_state: 'Work State / Region',
-  work_address_postal_code: 'Work Postal Code',
-  work_address_country: 'Work Country',
-  home_address_street: 'Home Street',
-  home_address_city: 'Home City',
-  home_address_state: 'Home State / Region',
-  home_address_postal_code: 'Home Postal Code',
-  home_address_country: 'Home Country',
-  company: 'Company',
-  job_title: 'Job Title',
-  website: 'Website',
-  birthday: 'Birthday',
-  notes: 'Notes',
-  photo: 'Photo',
-  work_address: 'Work Address',
-  home_address: 'Home Address',
-};
 
 const COUNTRY_FLAGS: Record<string, string> = {
   'Argentina': '🇦🇷',
@@ -222,6 +197,7 @@ function CountryCombobox({ id, value, onChange, disabled, error }: {
   disabled: boolean;
   error?: string;
 }) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -313,7 +289,7 @@ function CountryCombobox({ id, value, onChange, disabled, error }: {
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        placeholder="Type to search..."
+        placeholder={t('form.country.search')}
         className="material-input mt-1 w-full"
       />
 
@@ -339,7 +315,7 @@ function CountryCombobox({ id, value, onChange, disabled, error }: {
 
       {isOpen && filtered.length === 0 && inputValue && (
         <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-[var(--md-outline)] bg-white px-3 py-2 text-center text-sm text-[var(--md-muted)]">
-          No countries found
+          {t('form.country.none')}
         </div>
       )}
 
@@ -348,7 +324,10 @@ function CountryCombobox({ id, value, onChange, disabled, error }: {
   );
 }
 
-function validatePhoneNumber(value: string): {
+function validatePhoneNumber(
+  value: string,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): {
   isValid: boolean;
   error?: string;
   formatted: string;
@@ -363,7 +342,7 @@ function validatePhoneNumber(value: string): {
     return {
       isValid: false,
       formatted: value,
-      error: 'Phone number too short (minimum 10 digits)',
+      error: t('form.phone.short'),
     };
   }
 
@@ -371,7 +350,7 @@ function validatePhoneNumber(value: string): {
     return {
       isValid: false,
       formatted: value,
-      error: 'Phone number too long (maximum 15 digits)',
+      error: t('form.phone.long'),
     };
   }
 
@@ -411,8 +390,9 @@ function PhoneInput({ id, value, onChange, disabled, error, label }: {
   error?: string;
   label: string;
 }) {
+  const { t } = useI18n();
   const [isTouched, setIsTouched] = useState(false);
-  const validation = useMemo(() => validatePhoneNumber(value), [value]);
+  const validation = useMemo(() => validatePhoneNumber(value, t), [value, t]);
   const detectedCountry = useMemo(() => getCountryFromPhoneNumber(value), [value]);
   const countryFlag = detectedCountry ? COUNTRY_FLAGS[detectedCountry] : undefined;
 
@@ -451,7 +431,7 @@ function PhoneInput({ id, value, onChange, disabled, error, label }: {
           onChange={handleChange}
           onBlur={handleBlur}
           disabled={disabled}
-          placeholder="(123) 456-7890"
+          placeholder={t('form.phone.placeholder')}
           className={`material-input w-full ${countryFlag ? 'pl-12' : ''}`}
         />
       </div>
@@ -461,7 +441,7 @@ function PhoneInput({ id, value, onChange, disabled, error, label }: {
           {hasError ? (
             <p className="mt-1 text-xs text-[var(--md-error)]">{validation.error}</p>
           ) : (
-            <p className="mt-1 text-xs text-green-600">✓ Valid phone number</p>
+            <p className="mt-1 text-xs text-green-600">{`✓ ${t('form.phone.valid')}`}</p>
           )}
         </>
       )}
@@ -479,6 +459,7 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
   onUpdate: (fieldKey: FieldKey, value: string) => void;
   isLastSection: boolean;
 }) {
+  const { t } = useI18n();
   const selectedCountry = values[`${prefix}_country`] ?? '';
   const isUSSelected = selectedCountry === 'United States';
 
@@ -492,7 +473,7 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
         {fields.find((f) => f.fieldKey.endsWith('_street')) && (
           <div>
             <label htmlFor={`${prefix}_street`} className="block text-sm font-semibold text-[var(--md-text)]">
-              Street
+              {t('form.address.street')}
             </label>
             <input
               id={`${prefix}_street`}
@@ -512,7 +493,7 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
         {fields.find((f) => f.fieldKey.endsWith('_city')) && (
           <div>
             <label htmlFor={`${prefix}_city`} className="block text-sm font-semibold text-[var(--md-text)]">
-              City
+              {t('form.address.city')}
             </label>
             <input
               id={`${prefix}_city`}
@@ -532,7 +513,7 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
         {fields.find((f) => f.fieldKey.endsWith('_state')) && (
           <div>
             <label htmlFor={`${prefix}_state`} className="block text-sm font-semibold text-[var(--md-text)]">
-              State / Region
+              {t('form.address.state')}
             </label>
             {isUSSelected ? (
               <select
@@ -542,7 +523,7 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
                 disabled={isSubmitting}
                 className="material-input mt-1 w-full"
               >
-                <option value="">Select...</option>
+                <option value="">{t('form.address.stateSelect')}</option>
                 {US_STATES.map((state) => (
                   <option key={state} value={state}>
                     {state}
@@ -569,7 +550,7 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
         {fields.find((f) => f.fieldKey.endsWith('_postal_code')) && (
           <div>
             <label htmlFor={`${prefix}_postal_code`} className="block text-sm font-semibold text-[var(--md-text)]">
-              Postal Code
+              {t('form.address.postal')}
             </label>
             <input
               id={`${prefix}_postal_code`}
@@ -589,7 +570,7 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
         {fields.find((f) => f.fieldKey.endsWith('_country')) && (
           <div>
             <label htmlFor={`${prefix}_country`} className="block text-sm font-semibold text-[var(--md-text)]">
-              Country
+              {t('form.address.country')}
             </label>
             <CountryCombobox
               id={`${prefix}_country`}
@@ -605,6 +586,7 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
 }
 
 export default function FormPage() {
+  const { t } = useI18n();
   const params = useParams<{ token: string }>();
   const router = useRouter();
   const token = params.token;
@@ -661,7 +643,7 @@ export default function FormPage() {
           }
         } else {
           setLoadErrorKind('generic');
-          setLoadErrorMessage('Could not load this form right now.');
+          setLoadErrorMessage('');
         }
 
         setFlowState('error');
@@ -698,7 +680,7 @@ export default function FormPage() {
   }
 
   function getFieldLabel(fieldKey: FieldKey): string {
-    return FIELD_LABELS[fieldKey] ?? fieldKey;
+    return t(`field.${fieldKey}`);
   }
 
   function validateFields(): boolean {
@@ -710,7 +692,7 @@ export default function FormPage() {
       }
       const value = values[field.fieldKey]?.trim() ?? '';
       if (!value) {
-        nextErrors[field.fieldKey] = `${getFieldLabel(field.fieldKey)} is required.`;
+        nextErrors[field.fieldKey] = t('form.field.required', { label: getFieldLabel(field.fieldKey) });
       }
     }
 
@@ -772,7 +754,7 @@ export default function FormPage() {
 
         setSubmitError(error.message);
       } else {
-        setSubmitError('Could not submit your updates right now. Please try again.');
+        setSubmitError(t('form.error.fallbackSubmit'));
       }
       setFlowState('form');
     }
@@ -780,15 +762,18 @@ export default function FormPage() {
 
   if (flowState === 'loading') {
     return (
-      <main className="material-shell flex items-start justify-center pt-8 md:pt-12">
+      <main className="material-shell relative flex items-start justify-center pt-8 md:pt-12">
+        <div className="recipient-language-anchor">
+          <LanguageSwitcher />
+        </div>
         <section className="form-reveal material-elevated w-full max-w-3xl overflow-hidden p-6 md:p-8">
           <div className="form-orb form-orb-a" aria-hidden />
           <div className="form-orb form-orb-b" aria-hidden />
           <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div className="space-y-3 text-left">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--md-muted)]">Loading</p>
-              <h1 className="material-title font-semibold">Preparing your contact form</h1>
-              <p className="material-muted max-w-md text-sm leading-7">Please wait a moment while we validate your secure link.</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--md-muted)]">{t('form.loading.badge')}</p>
+              <h1 className="material-title font-semibold">{t('form.loading.title')}</h1>
+              <p className="material-muted max-w-md text-sm leading-7">{t('form.loading.description')}</p>
             </div>
             <div className="rounded-3xl border border-[var(--md-outline)] bg-white/75 p-5 shadow-sm">
               <div className="config-loading-line w-full" />
@@ -808,49 +793,52 @@ export default function FormPage() {
   if (flowState === 'error') {
     const stateContent: Record<LoadErrorKind, { title: string; description: string }> = {
       'already-submitted': {
-        title: 'This Form Was Already Completed',
-        description: 'This request link can only be used once. The contact update has already been submitted.',
+        title: t('form.error.alreadySubmitted.title'),
+        description: t('form.error.alreadySubmitted.description'),
       },
       expired: {
-        title: 'This Form Has Expired',
-        description: 'This request link is no longer active. Ask the sender to generate a new form link.',
+        title: t('form.error.expired.title'),
+        description: t('form.error.expired.description'),
       },
       'not-found': {
-        title: 'Form Not Found',
-        description: 'This link does not match an active contact request.',
+        title: t('form.error.notFound.title'),
+        description: t('form.error.notFound.description'),
       },
       invalid: {
-        title: 'Invalid Form Link',
-        description: 'The link appears malformed. Double-check the full URL and try again.',
+        title: t('form.error.invalid.title'),
+        description: t('form.error.invalid.description'),
       },
       generic: {
-        title: 'Unable To Load Form',
-        description: 'Something went wrong while loading this form. Please try again shortly.',
+        title: t('form.error.generic.title'),
+        description: t('form.error.generic.description'),
       },
     };
     const stateActionContent: Record<LoadErrorKind, string> = {
-      'already-submitted': 'If you still need to share updates, ask Quinten for a new form link.',
-      expired: 'Ask Quinten to generate a fresh form link, then open that new URL.',
-      'not-found': 'Check whether the entire URL was copied. If it still fails, ask for a new link.',
-      invalid: 'Open the original message and use the full link exactly as shared.',
-      generic: 'Try again in a moment. If this continues, request a new form link.',
+      'already-submitted': t('form.error.alreadySubmitted.action'),
+      expired: t('form.error.expired.action'),
+      'not-found': t('form.error.notFound.action'),
+      invalid: t('form.error.invalid.action'),
+      generic: t('form.error.generic.action'),
     };
 
     const content = stateContent[loadErrorKind];
     const actionContent = stateActionContent[loadErrorKind];
 
     return (
-      <main className="material-shell flex items-start justify-center pt-8 md:pt-12">
+      <main className="material-shell relative flex items-start justify-center pt-8 md:pt-12">
+        <div className="recipient-language-anchor">
+          <LanguageSwitcher />
+        </div>
         <section className="form-reveal material-elevated w-full max-w-3xl overflow-hidden p-6 md:p-8">
           <div className="form-orb form-orb-a" aria-hidden />
           <div className="form-orb form-orb-b" aria-hidden />
           <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div className="space-y-3 text-left">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--md-muted)]">Couldn’t load</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--md-muted)]">{t('form.error.badge')}</p>
               <h1 className="material-title font-semibold">{content.title}</h1>
               <p className="material-muted max-w-md text-sm leading-7">{content.description}</p>
               <p className="rounded-xl border border-[var(--md-outline)] bg-white/75 px-3 py-2 text-xs leading-6 text-[var(--md-text)]">
-                Next step: {actionContent}
+                {t('form.error.nextStep', { action: actionContent })}
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 <button
@@ -858,10 +846,10 @@ export default function FormPage() {
                   onClick={() => window.location.reload()}
                   className="material-button material-button-secondary"
                 >
-                  Try this link again
+                  {t('form.error.tryAgain')}
                 </button>
                 <a href="/" className="material-button material-button-secondary">
-                  Open ContactSwap
+                  {t('form.error.openHome')}
                 </a>
               </div>
             </div>
@@ -878,20 +866,23 @@ export default function FormPage() {
     const firstName = formData.contactName.split(' ')[0] ?? formData.contactName;
 
     return (
-      <main className="material-shell flex items-start justify-center pt-8 md:pt-12">
+      <main className="material-shell relative flex items-start justify-center pt-8 md:pt-12">
+        <div className="recipient-language-anchor">
+          <LanguageSwitcher />
+        </div>
         <section className="form-reveal material-elevated relative w-full max-w-3xl overflow-hidden p-6 md:p-8 lg:p-10">
           <div className="space-y-5 text-left">
             <div className="space-y-2">
-              <h1 className="material-title font-semibold">Hey {firstName}! 👋</h1>
+              <h1 className="material-title font-semibold">{t('form.intro.title', { name: firstName })}</h1>
             </div>
               <p className="max-w-2xl text-base leading-8 text-[var(--md-text)]">
-                Quinten has asked you to fill out a short contact form so he can keep his phonebook up to date.
+                {t('form.intro.body1')}
               </p>
               <p className="max-w-2xl text-sm leading-7 text-[var(--md-muted)]">
-                Once you submit, your details are sent directly to him and added to his contacts. Your information won't be stored, it's processed and removed right away.
+                {t('form.intro.body2')}
               </p>
               <p className="max-w-2xl text-sm leading-7 text-[var(--md-muted)]">
-                When you're done, you'll land on a success page where you can save Quinten's contact in return, completing the swap. 🤝
+                {t('form.intro.body3')}
               </p>
 
               <button
@@ -899,7 +890,7 @@ export default function FormPage() {
                 onClick={() => setFlowState('form')}
                 className="material-button material-button-primary mt-2 w-full sm:w-auto"
               >
-                Let’s go →
+                {t('form.intro.cta')}
               </button>
           </div>
         </section>
@@ -908,14 +899,17 @@ export default function FormPage() {
   }
 
   return (
-    <main className="material-shell flex items-start justify-center pt-8 md:pt-12">
+    <main className="material-shell relative flex items-start justify-center pt-8 md:pt-12">
+      <div className="recipient-language-anchor">
+        <LanguageSwitcher />
+      </div>
       <section className="form-reveal material-elevated w-full max-w-5xl overflow-hidden p-6 md:p-8 lg:p-10">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="space-y-4 text-left">
-            <p className="text-xs uppercase tracking-[0.18em] text-[var(--md-muted)]">Your details</p>
-            <h1 className="material-title font-semibold">Update your contact details</h1>
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--md-muted)]">{t('form.header.badge')}</p>
+            <h1 className="material-title font-semibold">{t('form.header.title')}</h1>
             <p className="material-muted max-w-xl text-sm leading-7">
-              Review and update your details below, then submit to complete the contact exchange.
+              {t('form.header.description')}
             </p>
           </div>
 
@@ -939,7 +933,7 @@ export default function FormPage() {
                       rendered.push(
                         <AddressSection
                           key="work-address"
-                          label="Work Address"
+                          label={t('form.address.work')}
                           prefix="work_address"
                           fields={addressFields}
                           values={values}
@@ -959,7 +953,7 @@ export default function FormPage() {
                       rendered.push(
                         <AddressSection
                           key="home-address"
-                          label="Home Address"
+                          label={t('form.address.home')}
                           prefix="home_address"
                           fields={addressFields}
                           values={values}
@@ -985,7 +979,7 @@ export default function FormPage() {
                             {getFieldLabel(field.fieldKey)}
                             {field.required ? <span className="ml-1 text-[var(--md-error)]">*</span> : null}
                           </label>
-                          <p className="material-muted mt-1 text-xs">A square photo works best. JPEG or PNG, max 10 MB.</p>
+                          <p className="material-muted mt-1 text-xs">{t('form.photo.help')}</p>
 
                           <input
                             ref={photoInputRef}
@@ -1011,7 +1005,7 @@ export default function FormPage() {
                             {photoDataUri ? (
                               <img
                                 src={photoDataUri}
-                                alt="Contact photo preview"
+                                alt={t('form.photo.alt')}
                                 className="h-20 w-20 rounded-full border border-[var(--md-outline)] object-cover shadow-sm"
                               />
                             ) : (
@@ -1028,7 +1022,7 @@ export default function FormPage() {
                                 onClick={() => photoInputRef.current?.click()}
                                 className="material-button material-button-secondary text-sm"
                               >
-                                {photoDataUri ? 'Change photo' : 'Upload photo'}
+                                {photoDataUri ? t('form.photo.change') : t('form.photo.upload')}
                               </button>
                               {photoDataUri ? (
                                 <button
@@ -1041,7 +1035,7 @@ export default function FormPage() {
                                   }}
                                   className="text-xs text-[var(--md-muted)] underline underline-offset-2 hover:text-[var(--md-error)]"
                                 >
-                                  Remove
+                                  {t('form.photo.remove')}
                                 </button>
                               ) : null}
                             </div>
@@ -1120,7 +1114,7 @@ export default function FormPage() {
 
               {isSubmitting ? (
                 <div className="space-y-2 rounded-xl border border-[var(--md-outline)] bg-white/80 px-3 py-2">
-                  <p className="text-xs text-[var(--md-muted)]">Sending your update securely...</p>
+                  <p className="text-xs text-[var(--md-muted)]">{t('form.submit.sending')}</p>
                   <div className="config-loading-line w-full" />
                 </div>
               ) : null}
@@ -1136,9 +1130,9 @@ export default function FormPage() {
                       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.35" strokeWidth="3" />
                       <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                     </svg>
-                    Submitting...
+                    {t('form.submit.progress')}
                   </span>
-                ) : 'Submit Contact Update'}
+                ) : t('form.submit.button')}
               </button>
             </form>
           </div>
