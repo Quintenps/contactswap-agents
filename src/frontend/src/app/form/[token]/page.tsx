@@ -683,11 +683,19 @@ export default function FormPage() {
     return t(`field.${fieldKey}`);
   }
 
+  function isFieldRequired(field: { fieldKey: FieldKey; required: boolean }): boolean {
+    if (field.required) {
+      return true;
+    }
+    const fieldKey = field.fieldKey;
+    return fieldKey.includes('email') || fieldKey.includes('phone') || fieldKey === 'birthday';
+  }
+
   function validateFields(): boolean {
     const nextErrors: Record<string, string> = {};
 
     for (const field of orderedFields) {
-      if (!field.required) {
+      if (!isFieldRequired(field)) {
         continue;
       }
       const value = values[field.fieldKey]?.trim() ?? '';
@@ -892,12 +900,118 @@ export default function FormPage() {
                 {(() => {
                   const rendered: React.ReactNode[] = [];
                   const processedFields = new Set<string>();
+                  const workFieldKeys = new Set<string>(['company', 'job_title', 'work_email']);
+                  const workSectionFieldKeys = new Set<string>([
+                    ...orderedFields
+                      .filter((f) => f.fieldKey.startsWith('work_address_'))
+                      .map((f) => f.fieldKey),
+                    ...orderedFields
+                      .filter((f) => workFieldKeys.has(f.fieldKey))
+                      .map((f) => f.fieldKey),
+                  ]);
                   
                   for (let index = 0; index < orderedFields.length; index++) {
                     const field = orderedFields[index];
                     
                     // Skip already processed address fields
                     if (processedFields.has(field.fieldKey)) continue;
+
+                    // Group work fields under a single section.
+                    if (workSectionFieldKeys.has(field.fieldKey)) {
+                      const workRendered: React.ReactNode[] = [];
+
+                      for (const workField of orderedFields) {
+                        if (!workSectionFieldKeys.has(workField.fieldKey) || processedFields.has(workField.fieldKey)) {
+                          continue;
+                        }
+
+                        if (workField.fieldKey.startsWith('work_address_')) {
+                          const addressFields = orderedFields.filter((f) => f.fieldKey.startsWith('work_address_'));
+                          addressFields.forEach((f) => processedFields.add(f.fieldKey));
+                          workRendered.push(
+                            <AddressSection
+                              key="work-address"
+                              label={t('form.address.work')}
+                              prefix="work_address"
+                              fields={addressFields}
+                              values={values}
+                              errors={fieldErrors}
+                              isSubmitting={isSubmitting}
+                              onUpdate={updateValue}
+                              isLastSection={true}
+                            />,
+                          );
+                          continue;
+                        }
+
+                        processedFields.add(workField.fieldKey);
+                        const workValue = values[workField.fieldKey] ?? '';
+                        const workError = fieldErrors[workField.fieldKey];
+                        const workIsLongText = workField.fieldKey === 'notes';
+                        const workIsPhoneField = workField.fieldKey.includes('phone');
+
+                        workRendered.push(
+                          <div key={workField.fieldKey} className="form-enter" style={{ animationDelay: `${index * 55}ms` }}>
+                            {workIsPhoneField ? (
+                              <PhoneInput
+                                id={workField.fieldKey}
+                                value={workValue}
+                                onChange={(val) => updateValue(workField.fieldKey, val)}
+                                disabled={isSubmitting}
+                                error={workError}
+                                label={getFieldLabel(workField.fieldKey) + (isFieldRequired(workField) ? ' *' : '')}
+                              />
+                            ) : (
+                              <>
+                                <label htmlFor={workField.fieldKey} className="block text-sm font-semibold text-[var(--md-text)]">
+                                  {getFieldLabel(workField.fieldKey)}
+                                  {isFieldRequired(workField) ? <span className="ml-1 text-[var(--md-error)]">*</span> : null}
+                                </label>
+
+                                {workIsLongText ? (
+                                  <textarea
+                                    id={workField.fieldKey}
+                                    name={workField.fieldKey}
+                                    value={workValue}
+                                    onChange={(event) => updateValue(workField.fieldKey, event.target.value)}
+                                    rows={3}
+                                    className="material-input mt-2 resize-y"
+                                    required={isFieldRequired(workField)}
+                                  />
+                                ) : (
+                                  <input
+                                    id={workField.fieldKey}
+                                    name={workField.fieldKey}
+                                    value={workValue}
+                                    onChange={(event) => updateValue(workField.fieldKey, event.target.value)}
+                                    type={getFieldType(workField.fieldKey)}
+                                    className="material-input mt-2"
+                                    required={isFieldRequired(workField)}
+                                  />
+                                )}
+
+                                {workError ? (
+                                  <p className="mt-1 text-xs text-[var(--md-error)]" role="alert">
+                                    {workError}
+                                  </p>
+                                ) : null}
+                              </>
+                            )}
+                          </div>,
+                        );
+                      }
+
+                      rendered.push(
+                        <section key="work-section" className="space-y-4 border-t border-[var(--md-outline)]/60 py-4">
+                          <div className="flex items-center gap-3 pt-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--md-muted)]">{t('form.section.work')}</p>
+                            <div aria-hidden className="h-px flex-1 bg-[var(--md-outline)]/70" />
+                          </div>
+                          {workRendered}
+                        </section>,
+                      );
+                      continue;
+                    }
                     
                     // Detect work address section
                     if (field.fieldKey.startsWith('work_address_')) {
@@ -950,7 +1064,7 @@ export default function FormPage() {
                         <div key={field.fieldKey} className="form-enter" style={{ animationDelay: `${index * 55}ms` }}>
                           <label className="block text-sm font-semibold text-[var(--md-text)]">
                             {getFieldLabel(field.fieldKey)}
-                            {field.required ? <span className="ml-1 text-[var(--md-error)]">*</span> : null}
+                            {isFieldRequired(field) ? <span className="ml-1 text-[var(--md-error)]">*</span> : null}
                           </label>
                           <p className="material-muted mt-1 text-xs">{t('form.photo.help')}</p>
 
@@ -1033,13 +1147,13 @@ export default function FormPage() {
                               onChange={(val) => updateValue(field.fieldKey, val)}
                               disabled={isSubmitting}
                               error={error}
-                              label={getFieldLabel(field.fieldKey) + (field.required ? ' *' : '')}
+                              label={getFieldLabel(field.fieldKey) + (isFieldRequired(field) ? ' *' : '')}
                             />
                           ) : (
                             <>
                               <label htmlFor={field.fieldKey} className="block text-sm font-semibold text-[var(--md-text)]">
                                 {getFieldLabel(field.fieldKey)}
-                                {field.required ? <span className="ml-1 text-[var(--md-error)]">*</span> : null}
+                                {isFieldRequired(field) ? <span className="ml-1 text-[var(--md-error)]">*</span> : null}
                               </label>
 
                               {isLongText ? (
@@ -1050,7 +1164,7 @@ export default function FormPage() {
                                   onChange={(event) => updateValue(field.fieldKey, event.target.value)}
                                   rows={3}
                                   className="material-input mt-2 resize-y"
-                                  required={field.required}
+                                  required={isFieldRequired(field)}
                                 />
                               ) : (
                                 <input
@@ -1060,7 +1174,7 @@ export default function FormPage() {
                                   onChange={(event) => updateValue(field.fieldKey, event.target.value)}
                                   type={getFieldType(field.fieldKey)}
                                   className="material-input mt-2"
-                                  required={field.required}
+                                  required={isFieldRequired(field)}
                                 />
                               )}
 
