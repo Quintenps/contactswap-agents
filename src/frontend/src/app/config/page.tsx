@@ -234,33 +234,20 @@ export default function ConfigPage() {
   if (authState === 'unauthenticated') {
     return (
       <main className={`min-h-screen px-5 py-10 ${tone.page}`}>
-        <section className="mx-auto grid min-h-[72vh] max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <p className={`text-xs uppercase tracking-[0.18em] ${tone.mutedText}`}>Material Workspace</p>
-            <h1 className={`mt-3 max-w-2xl text-5xl font-semibold leading-tight ${tone.strongText}`}>
-              A refined admin flow with elevated surfaces and clearer hierarchy.
-            </h1>
-            <p className={`mt-5 max-w-xl text-sm leading-7 ${tone.mutedText}`}>
-              Forms stay table-forward, while actions live in focused panels that feel predictable and easy to scan.
-            </p>
-          </div>
-
-          <form className={`rounded-3xl border p-7 ${tone.card}`} onSubmit={handleSubmit}>
-            <label className={`block text-xs uppercase tracking-[0.12em] ${tone.mutedText}`} htmlFor="api-secret">
-              API Secret
-            </label>
+        <section className="mx-auto flex min-h-[72vh] max-w-6xl items-center justify-center">
+          <form className={`w-full max-w-md rounded-3xl border p-7 ${tone.card}`} onSubmit={handleSubmit}>
             <input
               id="api-secret"
               type="password"
               autoComplete="current-password"
               value={secretInput}
               onChange={(event) => setSecretInput(event.target.value)}
-              className={`mt-3 w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${tone.input}`}
-              placeholder="Enter admin secret"
+              className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${tone.input}`}
+              placeholder="Enter access code"
             />
 
             <button type="submit" disabled={isSubmitting} className={`mt-4 w-full rounded-2xl px-4 py-3 text-sm font-semibold ${tone.primaryButton}`}>
-              {isSubmitting ? 'Verifying...' : 'Enter dashboard'}
+              {isSubmitting ? 'Verifying...' : 'Continue'}
             </button>
 
             {authError ? <p className={`mt-4 rounded-xl border px-3 py-2 text-sm ${tone.errorBox}`}>{authError}</p> : null}
