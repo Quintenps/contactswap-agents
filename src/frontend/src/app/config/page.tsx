@@ -374,11 +374,6 @@ export default function ConfigPage() {
               </div>
             </div>
 
-            <div className={`border-t px-5 py-4 text-xs ${tone.sectionBand}`}>
-              <Link className={`${tone.link}`} href="/config/templates">
-                Open template management
-              </Link>
-            </div>
           </section>
 
           <aside className="space-y-5">
