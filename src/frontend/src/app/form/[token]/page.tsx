@@ -813,16 +813,7 @@ export default function FormPage() {
         description: t('form.error.generic.description'),
       },
     };
-    const stateActionContent: Record<LoadErrorKind, string> = {
-      'already-submitted': t('form.error.alreadySubmitted.action'),
-      expired: t('form.error.expired.action'),
-      'not-found': t('form.error.notFound.action'),
-      invalid: t('form.error.invalid.action'),
-      generic: t('form.error.generic.action'),
-    };
-
     const content = stateContent[loadErrorKind];
-    const actionContent = stateActionContent[loadErrorKind];
 
     return (
       <main className="material-shell relative flex items-start justify-center pt-8 md:pt-12">

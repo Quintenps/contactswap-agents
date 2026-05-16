@@ -11,10 +11,6 @@ import { generateVcf } from '../lib/vcf-generator';
 import { getFormByToken, markFormCompleted } from '../repositories/form-repository';
 import { sendFormAnswerEmail } from './send-form-answer-email';
 import {
-  getFormByToken,
-  markFormCompleted,
-} from '../repositories/form-repository';
-import {
   getFormIdByToken,
   insertExchangeToken,
 } from '../repositories/exchange-token-repository';
@@ -24,10 +20,11 @@ const EXCHANGE_TOKEN_TTL_MS = 30 * 60 * 1000;
 
 /**
  * Photo size constraints (must align with SPEC.md and feature-006)
- * - Max 55,000 base64 characters (approximately 40 KB decoded image bytes)
- * - Equivalent to processed 200x200 JPEG at 80% quality
+ * - Max 224 KB decoded image bytes (common practical upper bound for VCF photo payloads)
+ * - Base64 encoding expands data by ~4/3
  */
-const MAX_PHOTO_DATA_URI_CHARS = 55_000;
+const MAX_PHOTO_BYTES = 224 * 1024;
+const MAX_PHOTO_BASE64_CHARS = Math.ceil((MAX_PHOTO_BYTES / 3)) * 4;
 
 const SUPPORTED_FIELD_KEYS = new Set<string>([
   'full_name',
@@ -110,7 +107,7 @@ export async function answerForm(
   if (input.photo) {
     const parsed = parsePhotoDataUri(input.photo);
     if (!parsed) {
-      throw new AnswerFormError('photo must be a base64 data URI (image/jpeg or image/png)', 422);
+      throw new AnswerFormError('The photo format is not supported. Please use a JPG or PNG image.', 422);
     }
     photoBase64 = parsed.base64;
     photoMimeType = parsed.mimeType;
@@ -165,7 +162,7 @@ function validateFields(
   // Reject unknown field keys
   for (const key of Object.keys(submitted)) {
     if (!SUPPORTED_FIELD_KEYS.has(key)) {
-      throw new AnswerFormError(`Unknown field: ${key}`, 422);
+      throw new AnswerFormError('Something in this form could not be processed. Please reload the page and try again.', 422);
     }
   }
 
@@ -174,7 +171,7 @@ function validateFields(
     if (!config.required) continue;
     const value = submitted[config.fieldKey as string]?.trim();
     if (!value) {
-      throw new AnswerFormError(`Required field is missing or empty: ${config.fieldKey}`, 422);
+      throw new AnswerFormError('Please complete all required fields and try again.', 422);
     }
   }
 }
@@ -220,9 +217,9 @@ function parsePhotoDataUri(dataUri: string): PhotoPayload | null {
 
   const base64 = match[2].replace(/\s/g, '');
 
-  if (base64.length > MAX_PHOTO_DATA_URI_CHARS) {
+  if (base64.length > MAX_PHOTO_BASE64_CHARS) {
     throw new AnswerFormError(
-      `photo data URI exceeds maximum size (${base64.length} > ${MAX_PHOTO_DATA_URI_CHARS} chars)`,
+      'The photo is too large. Please choose a smaller image and try again.',
       422,
     );
   }

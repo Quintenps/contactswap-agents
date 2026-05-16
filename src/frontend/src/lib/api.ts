@@ -51,8 +51,8 @@ async function requestJson<T>(path: string, options: RequestOptions = {}): Promi
 
 async function buildApiError(response: Response): Promise<ApiClientError> {
   const fallbackMessage = response.status >= 500
-    ? 'The server is unavailable right now.'
-    : 'Request failed.';
+    ? 'Something went wrong on our side. Please try again in a moment.'
+    : 'Something went wrong. Please try again.';
 
   try {
     const payload = (await response.json()) as { error?: string };

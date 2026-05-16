@@ -13,7 +13,6 @@ export const messages: Record<Locale, Record<string, string>> = {
     'form.loading.title': 'Je contactformulier wordt klaargezet',
     'form.loading.description': 'Even geduld terwijl we je veilige link controleren.',
 
-    'form.error.badge': 'Kon niet laden',
     'form.error.nextStep': 'Volgende stap: {action}',
     'form.error.tryAgain': 'Probeer deze link opnieuw',
     'form.error.openHome': 'Open ContactSwap',
@@ -39,7 +38,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'form.intro.body1': 'Quinten heeft je gevraagd een kort contactformulier in te vullen zodat hij zijn adresboek actueel kan houden.',
     'form.intro.body2': 'Na verzenden worden je gegevens direct naar hem gestuurd en aan zijn contacten toegevoegd. Je gegevens worden niet opgeslagen: ze worden verwerkt en daarna meteen verwijderd.',
     'form.intro.body3': 'Na afloop kom je op een succespagina waar je ook Quintens contact kunt opslaan, zodat de uitwisseling compleet is. 🤝',
-    'form.intro.cta': 'Laten we beginnen ->',
+    'form.intro.cta': 'Okay',
 
     'form.header.badge': 'Jouw gegevens',
     'form.header.title': 'Werk je contactgegevens bij',
@@ -48,7 +47,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'form.submit.progress': 'Versturen...',
     'form.submit.sending': 'Je update wordt veilig verzonden...',
 
-    'form.photo.help': 'Een vierkante foto werkt het beste. JPEG of PNG, max 10 MB.',
+    'form.photo.help': 'Een vierkante foto werkt het beste. JPEG of PNG, maximaal 224 KB.',
     'form.photo.alt': 'Voorbeeld van contactfoto',
     'form.photo.upload': 'Foto uploaden',
     'form.photo.change': 'Foto wijzigen',
@@ -125,7 +124,6 @@ export const messages: Record<Locale, Record<string, string>> = {
     'form.loading.title': 'Preparing your contact form',
     'form.loading.description': 'Please wait a moment while we validate your secure link.',
 
-    'form.error.badge': "Could not load",
     'form.error.nextStep': 'Next step: {action}',
     'form.error.tryAgain': 'Try this link again',
     'form.error.openHome': 'Open ContactSwap',
@@ -151,7 +149,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'form.intro.body1': 'Quinten has asked you to fill out a short contact form so he can keep his phonebook up to date.',
     'form.intro.body2': "Once you submit, your details are sent directly to him and added to his contacts. Your information won't be stored, it's processed and removed right away.",
     'form.intro.body3': "When you're done, you'll land on a success page where you can save Quinten's contact in return, completing the swap. 🤝",
-    'form.intro.cta': 'Let us start ->',
+    'form.intro.cta': 'Okay',
 
     'form.header.badge': 'Your details',
     'form.header.title': 'Update your contact details',
@@ -160,7 +158,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'form.submit.progress': 'Submitting...',
     'form.submit.sending': 'Sending your update securely...',
 
-    'form.photo.help': 'A square photo works best. JPEG or PNG, max 10 MB.',
+    'form.photo.help': 'A square photo works best. JPEG or PNG, up to 224 KB.',
     'form.photo.alt': 'Contact photo preview',
     'form.photo.upload': 'Upload photo',
     'form.photo.change': 'Change photo',

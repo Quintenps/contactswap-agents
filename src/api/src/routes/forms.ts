@@ -25,6 +25,10 @@ type AppEnv = { Bindings: Env };
 
 export const formRoutes = new Hono<AppEnv>();
 
+const MAX_VCF_PHOTO_BYTES = 224 * 1024;
+const MAX_VCF_PHOTO_BASE64_CHARS = Math.ceil((MAX_VCF_PHOTO_BYTES / 3)) * 4;
+const MAX_VCF_PHOTO_DATA_URI_CHARS = MAX_VCF_PHOTO_BASE64_CHARS + 64;
+
 const createFormSchema = z.object({
   templateId: z.string().uuid(),
   vcf: z
@@ -54,7 +58,7 @@ const formIdParamSchema = z.object({
 const formTokenParamSchema = z.object({
   token: z
     .string()
-    .regex(/^[0-9a-f]{64}$/, 'token must be a 64-character lowercase hex string'),
+    .regex(/^[0-9a-f]{64}$/, 'This link is not valid. Please use the full link from the original message.'),
 });
 
 formRoutes.get('/', requireApiSecret, async (c) => {
@@ -172,7 +176,7 @@ const answerFormBodySchema = z.object({
   fields: z.record(z.string(), z.string()),
   photo: z
     .string()
-    .max(55_000, 'photo data URI must not exceed 55,000 characters')
+    .max(MAX_VCF_PHOTO_DATA_URI_CHARS, 'This photo is too large. Please choose a smaller image.')
     .optional()
     .nullable(),
 });
@@ -222,7 +226,7 @@ formRoutes.post('/:token/answer', async (c) => {
 const retrieveTokenQuerySchema = z.object({
   rt: z
     .string()
-    .regex(/^[0-9a-f]{64}$/, 'rt must be a 64-character lowercase hex string'),
+    .regex(/^[0-9a-f]{64}$/, 'This download link is not valid. Please open the latest completion link again.'),
 });
 
 formRoutes.get('/:token/return-card', async (c) => {
