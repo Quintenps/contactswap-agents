@@ -829,34 +829,16 @@ export default function FormPage() {
         <div className="recipient-language-anchor">
           <LanguageSwitcher />
         </div>
-        <section className="form-reveal material-elevated w-full max-w-3xl overflow-hidden p-6 md:p-8">
-          <div className="form-orb form-orb-a" aria-hidden />
-          <div className="form-orb form-orb-b" aria-hidden />
-          <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-            <div className="space-y-3 text-left">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--md-muted)]">{t('form.error.badge')}</p>
-              <h1 className="material-title font-semibold">{content.title}</h1>
-              <p className="material-muted max-w-md text-sm leading-7">{content.description}</p>
-              <p className="rounded-xl border border-[var(--md-outline)] bg-white/75 px-3 py-2 text-xs leading-6 text-[var(--md-text)]">
-                {t('form.error.nextStep', { action: actionContent })}
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="material-button material-button-secondary"
-                >
-                  {t('form.error.tryAgain')}
-                </button>
-                <a href="/" className="material-button material-button-secondary">
-                  {t('form.error.openHome')}
-                </a>
-              </div>
-            </div>
+        <section className="form-reveal material-elevated w-full max-w-3xl p-6 md:p-10">
+          <div className="mx-auto flex w-full max-w-xl flex-col items-center text-center">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+              {content.title}
+            </h1>
+            <p className="mt-3 max-w-lg text-sm leading-7 text-slate-600">
+              {content.description}
+            </p>
+
           </div>
-          {loadErrorMessage && loadErrorKind !== 'already-submitted' ? (
-            <p className="mt-5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-[var(--md-error)]">{loadErrorMessage}</p>
-          ) : null}
         </section>
       </main>
     );
