@@ -10,6 +10,14 @@ import { LanguageSwitcher } from '@/lib/language-switcher';
 type FlowState = 'loading' | 'intro' | 'form' | 'submitting' | 'error';
 type LoadErrorKind = 'not-found' | 'already-submitted' | 'expired' | 'invalid' | 'generic';
 
+const REQUIRED_FIELD_KEYS: ReadonlySet<FieldKey> = new Set([
+  'personal_email',
+  'work_phone',
+  'cell_phone',
+  'home_phone',
+  'birthday',
+]);
+
 const COUNTRY_FLAGS: Record<string, string> = {
   'Argentina': '🇦🇷',
   'Australia': '🇦🇺',
@@ -687,8 +695,7 @@ export default function FormPage() {
     if (field.required) {
       return true;
     }
-    const fieldKey = field.fieldKey;
-    return fieldKey.includes('email') || fieldKey.includes('phone') || fieldKey === 'birthday';
+    return REQUIRED_FIELD_KEYS.has(field.fieldKey);
   }
 
   function validateFields(): boolean {
