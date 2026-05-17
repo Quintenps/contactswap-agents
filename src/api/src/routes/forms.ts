@@ -217,7 +217,16 @@ formRoutes.post('/:token/answer', async (c) => {
     return c.json(response, 200);
   } catch (error) {
     if (error instanceof AnswerFormError) {
-      return c.json({ error: error.message }, error.status);
+      const errorResponse: Record<string, unknown> = {
+        error: error.message,
+      };
+      if (error.invalidField) {
+        errorResponse.invalidField = error.invalidField;
+      }
+      if (error.validationErrors?.length) {
+        errorResponse.errors = error.validationErrors;
+      }
+      return c.json(errorResponse, error.status);
     }
     throw error;
   }

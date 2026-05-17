@@ -1,0 +1,67 @@
+### Validation tests for feature-008-api-better-validation
+### This file tests all validation rules for the "All Fields" template
+
+@baseUrl = http://localhost:8787
+@apiSecret = contactswap
+@allFieldsTemplateId = 36f1b5f2-4f8b-4f24-9dc3-6d2c6de4ab52
+
+### Step 1: Create a form with the All Fields template (prerequisite)
+# This creates a form we can use for all answer validation tests
+# @name createAllFieldsForm
+POST {{baseUrl}}/v1/forms
+x-api-secret: {{apiSecret}}
+Content-Type: multipart/form-data; boundary=----ContactSwapBoundary
+
+------ContactSwapBoundary
+Content-Disposition: form-data; name="templateId"
+
+{{allFieldsTemplateId}}
+------ContactSwapBoundary
+Content-Disposition: form-data; name="vcf"; filename="contact_all_fields.vcf"
+Content-Type: text/vcard
+
+BEGIN:VCARD
+VERSION:3.0
+FN:John Doe
+N:Doe;John;;;
+EMAIL;TYPE=WORK:john.doe@company.com
+EMAIL;TYPE=HOME:john@example.com
+TEL;TYPE=CELL:+31652670011
+TEL;TYPE=WORK:+31207654321
+TEL;TYPE=HOME:+31200009999
+ADR;TYPE=WORK:;;123 Office Park Dr;Amsterdam;NH;1012 AB;Netherlands
+ADR;TYPE=HOME:;;456 Maple Ave;Amsterdam;NH;1012 AC;Netherlands
+ORG:Tech Corp
+TITLE:Senior Engineer
+URL:https://johndoe.example.com
+BDAY:1985-03-20
+NOTE:Test contact for validation.
+END:VCARD
+------ContactSwapBoundary--
+
+###############################################################################
+### SINGLE COMBINED VALIDATION TEST
+###############################################################################
+
+### Combined invalid submission - one request that includes invalid values
+# This request intentionally includes multiple invalid fields.
+# Expected response (422):
+# - error: summary message
+# - invalidField: first invalid field (backward compatibility)
+# - errors: list of all validation errors found in this payload
+POST {{baseUrl}}/v1/forms/{{createAllFieldsForm.response.body.$.token}}/answer
+Content-Type: application/json
+
+{
+  "fields": {
+    "full_name": "12345",
+    "work_email": "janeatcompany.com",
+    "personal_email": "@example.com",
+    "cell_phone": "+31 65 ABC-DEFGH",
+    "birthday": "2030-12-31",
+    "website": "www.google.com",
+    "work_address_city": "This is a very long city name that definitely exceeds the one hundred character limit we have set for address components in our validation",
+    "work_address_postal_code": "12",
+    "notes": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+  }
+}
