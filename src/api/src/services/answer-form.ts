@@ -11,6 +11,11 @@ import { generateVcf } from '../lib/vcf-generator';
 import { getFormByToken, markFormCompleted } from '../repositories/form-repository';
 import { sendFormAnswerEmail } from './send-form-answer-email';
 import {
+  getValidationErrors,
+  validateFormSubmission,
+} from './validate-form-submission';
+import type { FormSubmissionValidationError } from './validate-form-submission';
+import {
   getFormIdByToken,
   insertExchangeToken,
 } from '../repositories/exchange-token-repository';
@@ -26,37 +31,12 @@ const EXCHANGE_TOKEN_TTL_MS = 30 * 60 * 1000;
 const MAX_PHOTO_BYTES = 224 * 1024;
 const MAX_PHOTO_BASE64_CHARS = Math.ceil((MAX_PHOTO_BYTES / 3)) * 4;
 
-const SUPPORTED_FIELD_KEYS = new Set<string>([
-  'full_name',
-  'work_email',
-  'personal_email',
-  'work_phone',
-  'cell_phone',
-  'home_phone',
-  'work_address',
-  'work_address_street',
-  'work_address_city',
-  'work_address_state',
-  'work_address_postal_code',
-  'work_address_country',
-  'home_address',
-  'home_address_street',
-  'home_address_city',
-  'home_address_state',
-  'home_address_postal_code',
-  'home_address_country',
-  'company',
-  'job_title',
-  'website',
-  'birthday',
-  'notes',
-  'photo',
-]);
-
 export class AnswerFormError extends Error {
   constructor(
     message: string,
     public readonly status: 404 | 409 | 410 | 422,
+    public readonly invalidField?: FieldKey,
+    public readonly validationErrors?: FormSubmissionValidationError[],
   ) {
     super(message);
     this.name = 'AnswerFormError';
@@ -96,7 +76,16 @@ export async function answerForm(
     throw new AnswerFormError('Form has already been submitted', 409);
   }
 
-  validateFields(input.fields, form.fields);
+  const validationResult = validateFormSubmission(input.fields, form.fields);
+  if (!validationResult.isValid) {
+    const validationErrors = getValidationErrors(validationResult);
+    throw new AnswerFormError(
+      'Please fix the highlighted fields and try again.',
+      422,
+      validationResult.firstErrorFieldKey,
+      validationErrors,
+    );
+  }
 
   // Build a Contact from submitted values — only supported FieldKey values land here
   const contact = buildContact(input.fields);
@@ -153,27 +142,6 @@ export async function answerForm(
       expiresAt: exchangeToken.expiresAt,
     },
   };
-}
-
-function validateFields(
-  submitted: Record<string, string>,
-  fieldConfig: FieldConfig[],
-): void {
-  // Reject unknown field keys
-  for (const key of Object.keys(submitted)) {
-    if (!SUPPORTED_FIELD_KEYS.has(key)) {
-      throw new AnswerFormError('Something in this form could not be processed. Please reload the page and try again.', 422);
-    }
-  }
-
-  // Enforce required fields from the stored snapshot
-  for (const config of fieldConfig) {
-    if (!config.required) continue;
-    const value = submitted[config.fieldKey as string]?.trim();
-    if (!value) {
-      throw new AnswerFormError('Please complete all required fields and try again.', 422);
-    }
-  }
 }
 
 function buildContact(fields: Record<string, string>) {

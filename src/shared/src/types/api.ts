@@ -36,6 +36,16 @@ export interface ApiError {
   details?: Record<string, string>;
 }
 
+export interface ApiValidationErrorItem {
+  field: string;
+  message: string;
+}
+
+export interface ApiValidationErrorResponse extends ApiError {
+  invalidField?: string;
+  errors?: ApiValidationErrorItem[];
+}
+
 export interface AnswerFormResponse {
   success: true;
   completedAt: string;
