@@ -26,6 +26,24 @@
 - Decision: Keep `src/frontend/src/app/page.tsx` as a Server Component and place the auth-aware button in named export `AdminLink` at `src/frontend/src/app/_components/admin-link.tsx` (`'use client'`).
 - Rationale: Maintain SSR for static page content while limiting hydration to the interactive button.
 
+### 2026-05-18: Frontend validation error contract and UX precedence
+
+- Status: Accepted
+- By: Walter (Lead), Quinten Peels (via Copilot), Jesse
+- Feature: `feature-006-frontend-form-validation`
+- Decision: Keep validation API-driven; use typed `422` handling (`error`, optional `invalidField`) and map `invalidField` to inline field errors with focus when mapped, otherwise show a form-level fallback without clearing values; keep format feedback API-driven (no blur-time requirement); show a short generic banner alongside mapped field errors; treat `409`/`410` token-state responses as higher precedence than `422`; no phase-1 monitoring for unmapped `invalidField`.
+- Rationale: Keep frontend behavior deterministic while preserving precise, actionable correction guidance.
+- Consequences: Frontend and API field keys must stay aligned; status-precedence rules remain simple and predictable.
+
+### 2026-05-18: Frontend 422 field message and highlight precedence
+
+- Status: Accepted
+- By: Quinten Peels (via Scribe inbox merge)
+- Scope: `src/frontend/src/app/form/[token]/page.tsx`
+- Decision: For API `422` responses, when `invalidField` maps to a rendered field, source the inline field message from `errors[].message` where `errors[].field === invalidField`; if not present, fall back to top-level validation text (`validation.error`, then `error.message`). Keep the form-level banner on top-level API `error` and keep the mapped field highlighted/focused. If `invalidField` is missing or unmapped, show only the form-level error.
+- Rationale: Preserve precise, field-specific guidance while retaining consistent form-level context and existing `409/410` precedence behavior.
+- Consequences: UI message sourcing and field highlight behavior are now explicitly tied to API payload structure for mapped validation errors.
+
 ## Governance
 
 - All meaningful changes require team consensus
