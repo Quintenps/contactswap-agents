@@ -18,10 +18,23 @@ const API_SECRET_HEADER = 'x-api-secret';
 
 export const API_SECRET_STORAGE_KEY = 'contactswap_api_secret';
 
+export type ApiValidationFieldError = {
+  field: string;
+  message: string;
+};
+
+export type ApiValidationError = {
+  status: 422;
+  error: string;
+  invalidField?: string;
+  errors?: ApiValidationFieldError[];
+};
+
 export class ApiClientError extends Error {
   constructor(
     message: string,
     public readonly status?: number,
+    public readonly validation?: ApiValidationError,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -55,8 +68,37 @@ async function buildApiError(response: Response): Promise<ApiClientError> {
     : 'Something went wrong. Please try again.';
 
   try {
-    const payload = (await response.json()) as { error?: string };
-    return new ApiClientError(payload.error || fallbackMessage, response.status);
+    const payload = (await response.json()) as {
+      error?: unknown;
+      status?: unknown;
+      invalidField?: unknown;
+      errors?: unknown;
+    };
+
+    const message = typeof payload.error === 'string' && payload.error.trim().length > 0
+      ? payload.error
+      : fallbackMessage;
+
+    const validation = response.status === 422
+      ? {
+          status: 422 as const,
+          error: message,
+          invalidField: typeof payload.invalidField === 'string' ? payload.invalidField : undefined,
+          errors: Array.isArray(payload.errors)
+            ? payload.errors
+                .filter((entry): entry is { field: unknown; message: unknown } => (
+                  typeof entry === 'object' && entry !== null
+                ))
+                .map((entry) => ({
+                  field: typeof entry.field === 'string' ? entry.field : '',
+                  message: typeof entry.message === 'string' ? entry.message : '',
+                }))
+                .filter((entry) => entry.field.trim().length > 0 && entry.message.trim().length > 0)
+            : undefined,
+        }
+      : undefined;
+
+    return new ApiClientError(message, response.status, validation);
   } catch {
     return new ApiClientError(fallbackMessage, response.status);
   }

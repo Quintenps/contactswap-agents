@@ -12,4 +12,6 @@
 - Recast from Matrix universe (Trinity) to Breaking Bad universe.
 - **feature-004 (2026-05-10):** In Next.js App Router you cannot mix server and `'use client'` exports in the same file. When a page must be a Server Component but needs client-side localStorage access, extract the client logic into a separate file under `_components/` and import it into the page. The page itself stays directive-free (Server Component by default).
 - **feature-004:** Used a three-state enum (`'pending' | 'authenticated' | 'unauthenticated'`) for auth state so the button slot renders `null` during the in-flight check, preventing any flash of the admin button on unauthenticated users.
+- **feature-006 (2026-05-18):** Frontend 422 UX is safest when the API client exposes a typed validation payload (`status: 422`, `error`, optional `invalidField`) on `ApiClientError`; submit handlers can then deterministically apply field-level mapping only for rendered keys, keep values intact, and fall back to form-level banner messaging when mapping is missing or stale.
+- **feature-006 (2026-05-18):** When API `errors[]` is present, field-level text should come from the matching `{ field, message }` entry, while the form banner should keep the top-level API `error` for consistent global guidance.
 

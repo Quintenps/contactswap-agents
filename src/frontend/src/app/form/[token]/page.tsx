@@ -198,6 +198,14 @@ const COUNTRY_DIAL_CODES: Array<{ country: string; dialCode: string }> = [
   { country: 'Norway', dialCode: '47' },
 ].sort((a, b) => b.dialCode.length - a.dialCode.length);
 
+function getFieldInputClass(baseClassName: string, hasError: boolean): string {
+  if (!hasError) {
+    return baseClassName;
+  }
+
+  return `${baseClassName} border-[var(--md-error)] focus:border-[var(--md-error)] focus:ring-2 focus:ring-[var(--md-error)]/20`;
+}
+
 function CountryCombobox({ id, value, onChange, disabled, error }: {
   id: string;
   value: string;
@@ -298,7 +306,9 @@ function CountryCombobox({ id, value, onChange, disabled, error }: {
         onKeyDown={handleKeyDown}
         disabled={disabled}
         placeholder={t('form.country.search')}
-        className="material-input mt-1 w-full"
+        className={getFieldInputClass('material-input mt-1 w-full', Boolean(error))}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
       />
 
       {isOpen && filtered.length > 0 && (
@@ -327,7 +337,7 @@ function CountryCombobox({ id, value, onChange, disabled, error }: {
         </div>
       )}
 
-      {error && <p className="mt-1 text-xs text-[var(--md-error)]">{error}</p>}
+      {error && <p id={`${id}-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">{error}</p>}
     </div>
   );
 }
@@ -415,8 +425,10 @@ function PhoneInput({ id, value, onChange, disabled, error, label }: {
     }
   }
 
-  const showValidation = isTouched && value;
+  const showValidation = isTouched && value.length > 0;
   const hasError = showValidation && !validation.isValid;
+  const hasInputError = Boolean(error) || hasError;
+  const describedBy = error ? `${id}-error` : hasError ? `${id}-validation-error` : undefined;
 
   return (
     <div>
@@ -440,14 +452,16 @@ function PhoneInput({ id, value, onChange, disabled, error, label }: {
           onBlur={handleBlur}
           disabled={disabled}
           placeholder={t('form.phone.placeholder')}
-          className={`material-input w-full ${countryFlag ? 'pl-12' : ''}`}
+          className={getFieldInputClass(`material-input w-full ${countryFlag ? 'pl-12' : ''}`, hasInputError)}
+          aria-invalid={hasInputError}
+          aria-describedby={describedBy}
         />
       </div>
-      {error && <p className="mt-1 text-xs text-[var(--md-error)]">{error}</p>}
+      {error && <p id={`${id}-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">{error}</p>}
       {showValidation && !error && (
         <>
           {hasError ? (
-            <p className="mt-1 text-xs text-[var(--md-error)]">{validation.error}</p>
+            <p id={`${id}-validation-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">{validation.error}</p>
           ) : (
             <p className="mt-1 text-xs text-green-600">{`✓ ${t('form.phone.valid')}`}</p>
           )}
@@ -489,10 +503,12 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
               value={values[`${prefix}_street`] ?? ''}
               onChange={(e) => onUpdate(`${prefix}_street` as FieldKey, e.target.value)}
               disabled={isSubmitting}
-              className="material-input mt-1 w-full"
+              className={getFieldInputClass('material-input mt-1 w-full', Boolean(errors[`${prefix}_street`]))}
+              aria-invalid={Boolean(errors[`${prefix}_street`])}
+              aria-describedby={errors[`${prefix}_street`] ? `${prefix}_street-error` : undefined}
             />
             {errors[`${prefix}_street`] && (
-              <p className="mt-1 text-xs text-[var(--md-error)]">{errors[`${prefix}_street`]}</p>
+              <p id={`${prefix}_street-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">{errors[`${prefix}_street`]}</p>
             )}
           </div>
         )}
@@ -509,10 +525,12 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
               value={values[`${prefix}_city`] ?? ''}
               onChange={(e) => onUpdate(`${prefix}_city` as FieldKey, e.target.value)}
               disabled={isSubmitting}
-              className="material-input mt-1 w-full"
+              className={getFieldInputClass('material-input mt-1 w-full', Boolean(errors[`${prefix}_city`]))}
+              aria-invalid={Boolean(errors[`${prefix}_city`])}
+              aria-describedby={errors[`${prefix}_city`] ? `${prefix}_city-error` : undefined}
             />
             {errors[`${prefix}_city`] && (
-              <p className="mt-1 text-xs text-[var(--md-error)]">{errors[`${prefix}_city`]}</p>
+              <p id={`${prefix}_city-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">{errors[`${prefix}_city`]}</p>
             )}
           </div>
         )}
@@ -529,7 +547,9 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
                 value={values[`${prefix}_state`] ?? ''}
                 onChange={(e) => onUpdate(`${prefix}_state` as FieldKey, e.target.value)}
                 disabled={isSubmitting}
-                className="material-input mt-1 w-full"
+                className={getFieldInputClass('material-input mt-1 w-full', Boolean(errors[`${prefix}_state`]))}
+                aria-invalid={Boolean(errors[`${prefix}_state`])}
+                aria-describedby={errors[`${prefix}_state`] ? `${prefix}_state-error` : undefined}
               >
                 <option value="">{t('form.address.stateSelect')}</option>
                 {US_STATES.map((state) => (
@@ -545,11 +565,13 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
                 value={values[`${prefix}_state`] ?? ''}
                 onChange={(e) => onUpdate(`${prefix}_state` as FieldKey, e.target.value)}
                 disabled={isSubmitting}
-                className="material-input mt-1 w-full"
+                className={getFieldInputClass('material-input mt-1 w-full', Boolean(errors[`${prefix}_state`]))}
+                aria-invalid={Boolean(errors[`${prefix}_state`])}
+                aria-describedby={errors[`${prefix}_state`] ? `${prefix}_state-error` : undefined}
               />
             )}
             {errors[`${prefix}_state`] && (
-              <p className="mt-1 text-xs text-[var(--md-error)]">{errors[`${prefix}_state`]}</p>
+              <p id={`${prefix}_state-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">{errors[`${prefix}_state`]}</p>
             )}
           </div>
         )}
@@ -566,10 +588,12 @@ function AddressSection({ label, prefix, fields, values, errors, isSubmitting, o
               value={values[`${prefix}_postal_code`] ?? ''}
               onChange={(e) => onUpdate(`${prefix}_postal_code` as FieldKey, e.target.value)}
               disabled={isSubmitting}
-              className="material-input mt-1 w-full"
+              className={getFieldInputClass('material-input mt-1 w-full', Boolean(errors[`${prefix}_postal_code`]))}
+              aria-invalid={Boolean(errors[`${prefix}_postal_code`])}
+              aria-describedby={errors[`${prefix}_postal_code`] ? `${prefix}_postal_code-error` : undefined}
             />
             {errors[`${prefix}_postal_code`] && (
-              <p className="mt-1 text-xs text-[var(--md-error)]">{errors[`${prefix}_postal_code`]}</p>
+              <p id={`${prefix}_postal_code-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">{errors[`${prefix}_postal_code`]}</p>
             )}
           </div>
         )}
@@ -669,7 +693,23 @@ export default function FormPage() {
     () => [...(formData?.fields ?? [])].sort((a, b) => a.order - b.order),
     [formData],
   );
+  const renderedFieldKeys = useMemo(
+    () => new Set<FieldKey>(orderedFields.map((field) => field.fieldKey)),
+    [orderedFields],
+  );
   const isSubmitting = flowState === 'submitting';
+
+  function focusField(fieldKey: FieldKey) {
+    const target = document.getElementById(fieldKey);
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (target instanceof HTMLElement) {
+      target.focus({ preventScroll: true });
+    }
+  }
 
   function getFieldType(fieldKey: FieldKey): React.HTMLInputTypeAttribute {
     if (fieldKey.includes('email')) {
@@ -764,6 +804,33 @@ export default function FormPage() {
           setLoadErrorKind('expired');
           setLoadErrorMessage(error.message);
           setFlowState('error');
+          return;
+        }
+
+        if (error.status === 422) {
+          const invalidField = error.validation?.invalidField;
+          const mappedField = invalidField && renderedFieldKeys.has(invalidField as FieldKey)
+            ? (invalidField as FieldKey)
+            : null;
+
+          if (mappedField) {
+            const matchingFieldError = error.validation?.errors?.find(
+              (entry) => entry.field === mappedField,
+            )?.message;
+            const fallbackFieldError = error.validation?.error ?? error.message;
+
+            setFieldErrors((current) => ({
+              ...current,
+              [mappedField]: matchingFieldError ?? fallbackFieldError,
+            }));
+            setSubmitError(error.validation?.error ?? error.message);
+            setFlowState('form');
+            requestAnimationFrame(() => focusField(mappedField));
+            return;
+          }
+
+          setSubmitError(error.validation?.error ?? error.message);
+          setFlowState('form');
           return;
         }
 
@@ -982,8 +1049,10 @@ export default function FormPage() {
                                     value={workValue}
                                     onChange={(event) => updateValue(workField.fieldKey, event.target.value)}
                                     rows={3}
-                                    className="material-input mt-2 resize-y"
+                                    className={getFieldInputClass('material-input mt-2 resize-y', Boolean(workError))}
                                     required={isFieldRequired(workField)}
+                                    aria-invalid={Boolean(workError)}
+                                    aria-describedby={workError ? `${workField.fieldKey}-error` : undefined}
                                   />
                                 ) : (
                                   <input
@@ -992,13 +1061,15 @@ export default function FormPage() {
                                     value={workValue}
                                     onChange={(event) => updateValue(workField.fieldKey, event.target.value)}
                                     type={getFieldType(workField.fieldKey)}
-                                    className="material-input mt-2"
+                                    className={getFieldInputClass('material-input mt-2', Boolean(workError))}
                                     required={isFieldRequired(workField)}
+                                    aria-invalid={Boolean(workError)}
+                                    aria-describedby={workError ? `${workField.fieldKey}-error` : undefined}
                                   />
                                 )}
 
                                 {workError ? (
-                                  <p className="mt-1 text-xs text-[var(--md-error)]" role="alert">
+                                  <p id={`${workField.fieldKey}-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">
                                     {workError}
                                   </p>
                                 ) : null}
@@ -1170,8 +1241,10 @@ export default function FormPage() {
                                   value={value}
                                   onChange={(event) => updateValue(field.fieldKey, event.target.value)}
                                   rows={3}
-                                  className="material-input mt-2 resize-y"
+                                  className={getFieldInputClass('material-input mt-2 resize-y', Boolean(error))}
                                   required={isFieldRequired(field)}
+                                  aria-invalid={Boolean(error)}
+                                  aria-describedby={error ? `${field.fieldKey}-error` : undefined}
                                 />
                               ) : (
                                 <input
@@ -1180,13 +1253,15 @@ export default function FormPage() {
                                   value={value}
                                   onChange={(event) => updateValue(field.fieldKey, event.target.value)}
                                   type={getFieldType(field.fieldKey)}
-                                  className="material-input mt-2"
+                                  className={getFieldInputClass('material-input mt-2', Boolean(error))}
                                   required={isFieldRequired(field)}
+                                  aria-invalid={Boolean(error)}
+                                  aria-describedby={error ? `${field.fieldKey}-error` : undefined}
                                 />
                               )}
 
                               {error ? (
-                                <p className="mt-1 text-xs text-[var(--md-error)]" role="alert">
+                                <p id={`${field.fieldKey}-error`} className="mt-1 text-xs text-[var(--md-error)]" role="alert">
                                   {error}
                                 </p>
                               ) : null}
