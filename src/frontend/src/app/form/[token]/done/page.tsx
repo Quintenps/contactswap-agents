@@ -1,12 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { api } from '../../../../lib/api';
 import { LanguageSwitcher } from '@/lib/language-switcher';
 import { useI18n } from '@/lib/i18n';
 
 export default function FormDonePage() {
+  return (
+    <Suspense fallback={null}>
+      <FormDonePageContent />
+    </Suspense>
+  );
+}
+
+function FormDonePageContent() {
   const { t, locale } = useI18n();
   const params = useParams<{ token: string }>();
   const searchParams = useSearchParams();

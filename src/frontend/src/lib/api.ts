@@ -13,7 +13,8 @@ import type {
   OwnerCardStatusResponse,
 } from '@contactswap/shared';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+const DEFAULT_LOCAL_API_URL = 'http://localhost:8787';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || DEFAULT_LOCAL_API_URL;
 const API_SECRET_HEADER = 'x-api-secret';
 
 export const API_SECRET_STORAGE_KEY = 'contactswap_api_secret';
