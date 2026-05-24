@@ -15,4 +15,8 @@
 - Route composition pattern fixed to `src/api/src/routes/*` mounted via `app.route()`.
 - Request validation pattern fixed to `@hono/zod-validator` + Zod schemas.
 - Binding access pattern fixed to typed `c.env` using `Env` from `src/api/src/types/env.ts`.
+- Deployment prep baseline: API Cloudflare config currently lives in `src/api/wrangler.toml`; frontend has no Cloudflare deployment config yet and only conditional static export in `src/frontend/next.config.ts`.
+- Runtime config contract for deployment prep: API expects `PUBLIC_APP_URL`, `API_SECRET`, `DEFAULT_API_SECRET`, `MAILERSEND_API_KEY`, `MAILERSEND_EMAIL_TO`, `MAILERSEND_EMAIL_FROM`, `MAILERSEND_ENABLED`; frontend expects `NEXT_PUBLIC_API_URL` in `src/frontend/src/lib/api.ts`.
+- Frontend Cloudflare deployment must stay an explicit choice between static Pages-style export and Next.js runtime deployment on Workers until the owner selects one.
+- 📌 Team update (2026-05-19): Deployment choices are now set to frontend `pages-static` at `contactswap.quinten.dev` and API Worker production route `api.contactswap.quinten.dev`; production deploy/secrets scripts and root deploy orchestration were added.
 

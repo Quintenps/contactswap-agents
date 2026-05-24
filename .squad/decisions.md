@@ -44,6 +44,15 @@
 - Rationale: Preserve precise, field-specific guidance while retaining consistent form-level context and existing `409/410` precedence behavior.
 - Consequences: UI message sourcing and field highlight behavior are now explicitly tied to API payload structure for mapped validation errors.
 
+### 2026-05-19: Keep frontend Cloudflare deployment mode explicit until selected
+
+- Status: Proposed
+- By: Gus
+- Context: The API already has a Wrangler-managed Worker configuration, but the frontend only has a conditional static export in `src/frontend/next.config.ts` and no Cloudflare deployment config yet.
+- Decision: Document frontend deployment preparation as a required choice between `pages-static` and `workers-next` instead of assuming one mode in advance.
+- Rationale: The correct Cloudflare setup, scripts, and config files differ materially between static export and runtime Next.js deployment. Locking the mode before implementation avoids accidental partial setup.
+- Consequences: The deployment-preparation feature can be drafted now, but the owner still needs to choose the frontend mode before implementation work starts.
+
 ## Governance
 
 - All meaningful changes require team consensus
