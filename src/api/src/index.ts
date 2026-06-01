@@ -50,7 +50,7 @@ app.notFound((c) => c.json({ error: 'Not Found' }, 404));
 
 app.onError((err, c) => {
   console.error('Unhandled API error', { path: c.req.path, err });
-  return c.json({ error: 'Internal Server Error' }, 500);
+  return c.json({ error: 'Internal Server Error - ', message: err.message }, 500);
 });
 
 export default app;
