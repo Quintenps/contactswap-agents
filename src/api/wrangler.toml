@@ -17,7 +17,7 @@ local_protocol = "http"
 [[d1_databases]]
 binding = "D1"
 database_name = "contactswap-db"
-database_id = "42df6a44-1869-453c-8116-d7ae02df60e1"
+database_id = "d24dd0b0-c385-4309-82e2-d07f1a519f0d"
 
 [[r2_buckets]]
 binding = "R2"
