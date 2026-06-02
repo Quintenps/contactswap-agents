@@ -10,4 +10,5 @@
 
 - Initialized as tester responsible for quality gates and edge-case coverage.
 - Recast from Matrix universe (Switch) to Breaking Bad universe.
+- Exchange-token migrations must use a non-conflicting later sequence; `0004` is already taken by the photo-template migration.
 

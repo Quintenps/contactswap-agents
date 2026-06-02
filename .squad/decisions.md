@@ -63,6 +63,16 @@
 - Rationale: Option A restores expected browser behavior with lowest risk. Option B supports multi-origin deployments while preserving explicit trust boundaries. Deferring wildcard support avoids unnecessary matching complexity and security surface.
 - Consequences: CORS responses must only reflect validated origins, must include `Vary: Origin` when origin can vary per request, must fail safe on invalid env values, and must never use `*` with credentials.
 
+### 2026-06-02: Exchange-token migration gap closed with renamed migration
+
+- Status: Accepted
+- By: Hank (via Scribe inbox merge)
+- Scope: `src/api/migrations/`
+- Context: The exchange-token table existed in the code path, but the ordered migration set had no tracked migration for `form_exchange_tokens`. `0004` was already occupied by `0004_add_photo_to_templates.sql`, so the backfill could not reuse that sequence number.
+- Decision: Keep the exchange-token schema in a later, non-conflicting migration and preserve the intended contract: `id`, `form_id`, `exchange_token_hash`, `expires_at`, with `exchange_token_hash` unique and `form_id` referencing `forms(id)`.
+- Rationale: A later migration avoids numbering collisions while keeping schema recovery deterministic and idempotent.
+- Consequences: The migration history remains ordered, and any reconstructed schema can reconcile the exchange-token table without renumbering earlier migrations.
+
 ## Governance
 
 - All meaningful changes require team consensus
