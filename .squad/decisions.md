@@ -53,6 +53,16 @@
 - Rationale: The correct Cloudflare setup, scripts, and config files differ materially between static export and runtime Next.js deployment. Locking the mode before implementation avoids accidental partial setup.
 - Consequences: The deployment-preparation feature can be drafted now, but the owner still needs to choose the frontend mode before implementation work starts.
 
+### 2026-06-02: API CORS origin strategy baseline and extensions
+
+- Status: Accepted
+- By: Walter (via Scribe inbox merge)
+- Scope: API CORS policy configuration
+- Context: Current CORS allow-list derives from `PUBLIC_APP_URL`, which points to API origin and blocks frontend-origin browser requests.
+- Decision: Adopt Option A immediately by introducing explicit `FRONTEND_APP_URL` as CORS baseline. Keep Option B available as controlled extension through `CORS_ALLOWED_ORIGINS` (comma-separated exact origins). Defer Option C wildcard support until explicitly required.
+- Rationale: Option A restores expected browser behavior with lowest risk. Option B supports multi-origin deployments while preserving explicit trust boundaries. Deferring wildcard support avoids unnecessary matching complexity and security surface.
+- Consequences: CORS responses must only reflect validated origins, must include `Vary: Origin` when origin can vary per request, must fail safe on invalid env values, and must never use `*` with credentials.
+
 ## Governance
 
 - All meaningful changes require team consensus

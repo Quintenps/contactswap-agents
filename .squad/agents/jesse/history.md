@@ -16,4 +16,5 @@
 - **feature-006 (2026-05-18):** When API `errors[]` is present, field-level text should come from the matching `{ field, message }` entry, while the form banner should keep the top-level API `error` for consistent global guidance.
 - **feature-001 (2026-05-19):** Frontend Cloudflare deployment prep must keep the deployment mode explicit until selected: `pages-static` and `workers-next` require materially different config, scripts, and hosting setup, so implementation should not assume one before the owner chooses.
 - 📌 Team update (2026-05-19): Frontend deployment mode is now fixed to `pages-static` with production domain `contactswap.quinten.dev`; keep static export-safe patterns (including `Suspense` wrapping for `useSearchParams`) for release stability.
+- Team update (2026-06-02): API CORS strategy now assumes frontend browser origins are allow-listed via explicit `FRONTEND_APP_URL` (with optional exact-origin extensions), so frontend environments should align origin config with API CORS envs.
 

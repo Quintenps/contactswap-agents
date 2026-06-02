@@ -19,4 +19,5 @@
 - Runtime config contract for deployment prep: API expects `PUBLIC_APP_URL`, `API_SECRET`, `DEFAULT_API_SECRET`, `MAILERSEND_API_KEY`, `MAILERSEND_EMAIL_TO`, `MAILERSEND_EMAIL_FROM`, `MAILERSEND_ENABLED`; frontend expects `NEXT_PUBLIC_API_URL` in `src/frontend/src/lib/api.ts`.
 - Frontend Cloudflare deployment must stay an explicit choice between static Pages-style export and Next.js runtime deployment on Workers until the owner selects one.
 - 📌 Team update (2026-05-19): Deployment choices are now set to frontend `pages-static` at `contactswap.quinten.dev` and API Worker production route `api.contactswap.quinten.dev`; production deploy/secrets scripts and root deploy orchestration were added.
+- Team update (2026-06-02): CORS baseline should use explicit `FRONTEND_APP_URL` instead of deriving from `PUBLIC_APP_URL`; optional `CORS_ALLOWED_ORIGINS` can extend exact-origin allow-list, while wildcard origin support remains deferred.
 

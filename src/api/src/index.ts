@@ -21,15 +21,46 @@ const LOCAL_DEV_ORIGINS = new Set([
   'http://127.0.0.1:3000',
 ]);
 
+function parseHttpOrigin(urlValue: string): string | null {
+  try {
+    const parsed = new URL(urlValue);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return parsed.origin === 'null' ? null : parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function ensureVaryOrigin(existingVary: string | null): string {
+  if (!existingVary) {
+    return 'Origin';
+  }
+
+  const hasOrigin = existingVary
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .includes('origin');
+
+  return hasOrigin ? existingVary : `${existingVary}, Origin`;
+}
+
 app.use('*', logger());
+app.use('/v1/*', async (c, next) => {
+  await next();
+
+  if (c.req.header('Origin')) {
+    c.header('Vary', ensureVaryOrigin(c.res.headers.get('Vary')));
+  }
+});
 app.use('/v1/*', cors({
   origin: (origin, c) => {
     const allowedOrigins = new Set(LOCAL_DEV_ORIGINS);
 
-    try {
-      allowedOrigins.add(new URL(c.env.PUBLIC_APP_URL).origin);
-    } catch {
-      // Ignore invalid PUBLIC_APP_URL values and fall back to known defaults.
+    const frontendOrigin = parseHttpOrigin(c.env.FRONTEND_APP_URL);
+    if (frontendOrigin) {
+      allowedOrigins.add(frontendOrigin);
     }
 
     if (!origin) {
