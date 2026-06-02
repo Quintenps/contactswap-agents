@@ -26,7 +26,7 @@ Define the deployment-preparation work needed to ship both apps on Cloudflare wi
 
 - API current state:
 - `src/api/wrangler.toml` already defines a Worker, `nodejs_compat`, local vars, one D1 binding (`D1`), one R2 binding (`R2`), a cron trigger, and a production route for `api.contactswap.app`.
-- API code currently expects these runtime values: `PUBLIC_APP_URL`, `API_SECRET`, `DEFAULT_API_SECRET`, `MAILERSEND_API_KEY`, `MAILERSEND_EMAIL_TO`, `MAILERSEND_EMAIL_FROM`, `MAILERSEND_ENABLED`.
+- API code currently expects these runtime values: `API_APP_URL`, `API_SECRET`, `DEFAULT_API_SECRET`, `MAILERSEND_API_KEY`, `MAILERSEND_EMAIL_TO`, `MAILERSEND_EMAIL_FROM`, `MAILERSEND_ENABLED`.
 - `DEFAULT_API_SECRET` is acceptable for local development convenience but should not be treated as the production auth mechanism.
 - Cloudflare Wrangler environments do not inherit bindings like `vars`, `d1_databases`, or `r2_buckets`; each deployed environment must define them explicitly.
 - Frontend current state:
@@ -41,7 +41,7 @@ Define the deployment-preparation work needed to ship both apps on Cloudflare wi
 - Keep Wrangler config as the source of truth for routes, bindings, and non-secret vars.
 - Add a documented local secret flow using `.dev.vars` and a deployment secret flow for `API_SECRET` and `MAILERSEND_API_KEY`.
 - Frontend/API alignment to preserve:
-- `PUBLIC_APP_URL` must be the deployed frontend origin because the API uses it for CORS and generated form links.
+- `API_APP_URL` must be the deployed API origin because the API uses it for generated form links and return-card URLs.
 - `NEXT_PUBLIC_API_URL` must be the browser-reachable API base URL.
 
 ## What You Need To Fill In
@@ -49,7 +49,7 @@ Define the deployment-preparation work needed to ship both apps on Cloudflare wi
 - `<FRONTEND_DEPLOYMENT_MODE>`: choose `pages-static` or `workers-next`.
 - `<FRONTEND_DOMAIN>`: the public frontend hostname, for example the final app URL.
 - `<API_DOMAIN>`: the public API hostname if different from the current planned `api.contactswap.app`.
-- `<PUBLIC_APP_URL_PRODUCTION>`: the final frontend origin used by the API for CORS and generated links.
+- `<API_APP_URL_PRODUCTION>`: the final API origin used by the API for generated links.
 - `<NEXT_PUBLIC_API_URL_PRODUCTION>`: the final browser-facing API base URL.
 - `<CF_ACCOUNT_ID>`: only if you want to pin account-level config in CI or Wrangler config.
 - `<API_D1_DATABASE_ID_PRODUCTION>` and optional `<API_D1_DATABASE_ID_STAGING>`.
@@ -72,7 +72,7 @@ Define the deployment-preparation work needed to ship both apps on Cloudflare wi
 ## Suggested Implementation Order
 
 1. Decide whether the frontend is `pages-static` or `workers-next`.
-2. Finalize production domains so `PUBLIC_APP_URL` and `NEXT_PUBLIC_API_URL` can be set correctly.
+2. Finalize production domains so `API_APP_URL` and `NEXT_PUBLIC_API_URL` can be set correctly.
 3. Create Cloudflare resources for the API environment: D1 database, R2 bucket, and Worker route/domain.
 4. Update API deployment config with real binding identifiers, vars, and required secrets.
 5. Add frontend deployment config and scripts for the chosen Cloudflare mode.

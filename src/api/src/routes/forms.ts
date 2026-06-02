@@ -302,7 +302,7 @@ formRoutes.get('/:token/return-card-qr', async (c) => {
     return c.json({ error: 'Owner card not configured' }, 503);
   }
 
-  const appBase = c.env.PUBLIC_APP_URL.replace(/\/$/, '');
+  const appBase = c.env.API_APP_URL.replace(/\/$/, '');
   const downloadUrl = `${appBase}/v1/forms/${tokenParsed.data.token}/return-card?rt=${queryParsed.data.rt}`;
 
   const qr = qrcode(0, 'M');

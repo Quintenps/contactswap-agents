@@ -7,7 +7,8 @@ export interface Env {
   R2: R2Bucket;
   API_SECRET?: string;
   DEFAULT_API_SECRET?: string;
-  PUBLIC_APP_URL: string;
+  API_APP_URL: string;
+  FRONTEND_APP_URL: string;
   MAILERSEND_API_KEY: string;
   MAILERSEND_EMAIL_TO: string;
   /** Verified MailerSend sender address, e.g. no-reply@test-zxk54v8nooqljy6v.mlsender.net */
