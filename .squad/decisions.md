@@ -73,6 +73,16 @@
 - Rationale: A later migration avoids numbering collisions while keeping schema recovery deterministic and idempotent.
 - Consequences: The migration history remains ordered, and any reconstructed schema can reconcile the exchange-token table without renumbering earlier migrations.
 
+### 2026-06-02: User-facing create-form links must resolve to frontend origin
+
+- Status: Accepted
+- By: Jesse, Gus (via Scribe inbox merge)
+- Scope: API `CreateFormResponse.url`, frontend admin create-form success actions
+- Context: User-facing form links were vulnerable to API-origin leakage when built directly from backend absolute URL fields in mixed-origin deployments.
+- Decision: Keep API response shape unchanged (`id`, `token`, `url`, `expiresAt`), but define the link contract as frontend-origin for user-facing navigation. Backend constructs `url` from `FRONTEND_APP_URL`; frontend success UX builds/open/copy actions from `token` with frontend-origin resolution (`NEXT_PUBLIC_FRONTEND_URL`, then browser origin, then local fallback).
+- Rationale: Preserves contract stability while ensuring all share/open actions target frontend-owned `/forms/{token}` routes.
+- Consequences: Admin copy/open/share flows are origin-safe for end users, API absolute URLs remain suitable for API-scope resources only, and shared API type/docs now explicitly describe `url` as user-facing frontend route intent.
+
 ## Governance
 
 - All meaningful changes require team consensus

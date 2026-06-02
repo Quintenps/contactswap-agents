@@ -17,4 +17,5 @@
 - **feature-001 (2026-05-19):** Frontend Cloudflare deployment prep must keep the deployment mode explicit until selected: `pages-static` and `workers-next` require materially different config, scripts, and hosting setup, so implementation should not assume one before the owner chooses.
 - 📌 Team update (2026-05-19): Frontend deployment mode is now fixed to `pages-static` with production domain `contactswap.quinten.dev`; keep static export-safe patterns (including `Suspense` wrapping for `useSearchParams`) for release stability.
 - Team update (2026-06-02): API CORS strategy now assumes frontend browser origins are allow-listed via explicit `FRONTEND_APP_URL` (with optional exact-origin extensions), so frontend environments should align origin config with API CORS envs.
+- **feature-frontend-url-origin (2026-06-02):** In admin create-form success UX, never reuse backend-provided absolute `url` for user sharing/open actions. Build frontend-facing links from `token` via a frontend-origin resolver (`NEXT_PUBLIC_FRONTEND_URL` override, then `window.location.origin`, then local fallback) so copy/open always target `/forms/{token}` on the frontend app.
 

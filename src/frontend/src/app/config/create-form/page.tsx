@@ -23,7 +23,7 @@ export default function CreateFormPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-  const [success, setSuccess] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [success, setSuccess] = useState<{ formUrl: string; expiresAt: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function CreateFormPage() {
     try {
       const response = await api.createForm(apiSecret, selectedFile, templateId);
       setSuccess({
-        url: response.url,
+        formUrl: api.getPublicFormUrl(response.token),
         expiresAt: response.expiresAt,
       });
     } catch (error) {
@@ -202,7 +202,7 @@ export default function CreateFormPage() {
                 <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--md-muted)]">Share Message</p>
                 <textarea
                   readOnly
-                  value={buildShareMessage(success.url)}
+                  value={buildShareMessage(success.formUrl)}
                   className="h-44 w-full resize-none rounded-xl border border-[var(--md-outline)] bg-white/88 px-3 py-2 text-xs text-[var(--md-text)]"
                 />
                 <p className="material-muted mt-1 text-xs">Expires {formatDate(success.expiresAt)}</p>
@@ -211,13 +211,13 @@ export default function CreateFormPage() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => void copyUrl(success.url)}
+                  onClick={() => void copyUrl(success.formUrl)}
                   className="material-button material-button-primary flex-1"
                 >
                   {copied ? '✓ Copied' : 'Copy URL'}
                 </button>
                 <a
-                  href={success.url}
+                  href={success.formUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="material-button material-button-secondary flex-1"

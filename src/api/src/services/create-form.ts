@@ -60,7 +60,7 @@ export async function createForm(env: Env, input: CreateFormInput): Promise<Crea
   return {
     id,
     token,
-    url: buildFormUrl(env.API_APP_URL, token),
+    url: buildFormUrl(env.FRONTEND_APP_URL, token),
     expiresAt,
   };
 }
@@ -136,7 +136,7 @@ function buildExpiryIso(): string {
   return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 }
 
-function buildFormUrl(apiAppUrl: string, token: string): string {
-  const normalizedBaseUrl = apiAppUrl.replace(/\/$/, '');
+function buildFormUrl(frontendAppUrl: string, token: string): string {
+  const normalizedBaseUrl = frontendAppUrl.replace(/\/$/, '');
   return `${normalizedBaseUrl}/form/${token}`;
 }

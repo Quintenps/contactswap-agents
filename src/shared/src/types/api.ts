@@ -26,6 +26,7 @@ export interface ListFormsQuery {
 export interface CreateFormResponse {
   id: string;
   token: string;
+  // Backend returns a frontend-origin, user-facing form URL.
   url: string;
   expiresAt: string;
 }

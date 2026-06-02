@@ -15,6 +15,7 @@ import type {
 
 const DEFAULT_LOCAL_API_URL = 'http://localhost:8787';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || DEFAULT_LOCAL_API_URL;
+const DEFAULT_LOCAL_FRONTEND_URL = 'http://localhost:3000';
 const API_SECRET_HEADER = 'x-api-secret';
 
 export const API_SECRET_STORAGE_KEY = 'contactswap_api_secret';
@@ -134,6 +135,24 @@ function toQueryString(query: ListFormsQuery = {}): string {
   return serialized ? `?${serialized}` : '';
 }
 
+function normalizeBaseUrl(value: string): string {
+  return value.trim().replace(/\/+$/, '');
+}
+
+function resolveFrontendBaseUrl(): string {
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
+
+  if (configuredBaseUrl && configuredBaseUrl.trim().length > 0) {
+    return normalizeBaseUrl(configuredBaseUrl);
+  }
+
+  if (typeof window !== 'undefined' && window.location.origin) {
+    return normalizeBaseUrl(window.location.origin);
+  }
+
+  return DEFAULT_LOCAL_FRONTEND_URL;
+}
+
 export const api = {
   baseUrl: API_URL,
   verifyApiSecret(apiSecret: string) {
@@ -184,6 +203,10 @@ export const api = {
   },
   getPublicForm(token: string) {
     return requestJson<FormData>(`/v1/forms/${encodeURIComponent(token)}`);
+  },
+  getPublicFormUrl(token: string) {
+    const safeToken = encodeURIComponent(token);
+    return `${resolveFrontendBaseUrl()}/forms/${safeToken}`;
   },
   answerPublicForm(token: string, submission: FormSubmission) {
     return requestJson<AnswerFormResponse>(`/v1/forms/${encodeURIComponent(token)}/answer`, {
