@@ -64,6 +64,10 @@ interface DeleteFormRow {
   original_contact_url: string;
 }
 
+interface AppStatsRow {
+  counter_value: number;
+}
+
 export async function listFormRecords(
   db: D1Database,
   input: ListFormRecordsInput,
@@ -185,4 +189,33 @@ export async function markFormCompleted(
     .run();
 
   return (result.meta.changes ?? 0) > 0;
+}
+
+async function getAppCounter(db: D1Database, metric: string): Promise<number> {
+  const row = await db
+    .prepare('SELECT counter_value FROM app_stats WHERE metric = ?1')
+    .bind(metric)
+    .first<AppStatsRow>();
+
+  return Number(row?.counter_value ?? 0);
+}
+
+export async function incrementTotalContactSwaps(db: D1Database): Promise<number> {
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO app_stats (metric, counter_value, updated_at)
+       VALUES ('total_contact_swaps', 0, datetime('now'))`,
+    )
+    .run();
+
+  await db
+    .prepare(
+      `UPDATE app_stats
+       SET counter_value = counter_value + 1,
+           updated_at = datetime('now')
+       WHERE metric = 'total_contact_swaps'`,
+    )
+    .run();
+
+  return getAppCounter(db, 'total_contact_swaps');
 }

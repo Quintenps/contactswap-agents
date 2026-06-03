@@ -8,7 +8,11 @@
 import type { FieldConfig, FieldKey } from '@contactswap/shared';
 import type { AnswerFormResponse } from '@contactswap/shared';
 import { generateVcf } from '../lib/vcf-generator';
-import { getFormByToken, markFormCompleted } from '../repositories/form-repository';
+import {
+  getFormByToken,
+  incrementTotalContactSwaps,
+  markFormCompleted,
+} from '../repositories/form-repository';
 import { sendFormAnswerEmail } from './send-form-answer-email';
 import {
   getValidationErrors,
@@ -116,6 +120,9 @@ export async function answerForm(
     throw new AnswerFormError('Form has already been submitted', 409);
   }
 
+  // Increment durable swap count immediately after successful completion commit.
+  const totalContactSwaps = await incrementTotalContactSwaps(db);
+
   // Resilient email delivery: form completion is authoritative.
   // A delivery failure is logged but does not affect the response.
   if (emailConfig) {
@@ -137,6 +144,7 @@ export async function answerForm(
   return {
     success: true,
     completedAt: now,
+    totalContactSwaps,
     exchange: {
       retrieveToken: exchangeToken.rawToken,
       expiresAt: exchangeToken.expiresAt,
