@@ -134,6 +134,7 @@ Content-Type: application/json
 
 ### Retrieve admin card via exchange token (recipient download)
 # The exchange token is returned in answer response under exchange.retrieveToken
+# The answer response now also includes totalContactSwaps.
 # This endpoint is public and requires the short-lived token to download the admin's card
 # Run the answer form request first to get the token
 GET {{baseUrl}}/v1/forms/{{createForm.response.body.$.token}}/return-card?rt={{answerForm.response.body.$.exchange.retrieveToken}}

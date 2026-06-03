@@ -50,6 +50,7 @@ export interface ApiValidationErrorResponse extends ApiError {
 export interface AnswerFormResponse {
   success: true;
   completedAt: string;
+  totalContactSwaps: number;
   exchange: ExchangeBlock;
 }
 
