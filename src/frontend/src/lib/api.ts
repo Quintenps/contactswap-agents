@@ -32,6 +32,10 @@ export type ApiValidationError = {
   errors?: ApiValidationFieldError[];
 };
 
+export type AnswerPublicFormResponse = Omit<AnswerFormResponse, 'totalContactSwaps'> & {
+  totalContactSwaps?: number;
+};
+
 export class ApiClientError extends Error {
   constructor(
     message: string,
@@ -153,6 +157,14 @@ function resolveFrontendBaseUrl(): string {
   return DEFAULT_LOCAL_FRONTEND_URL;
 }
 
+function parseTotalContactSwaps(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    return undefined;
+  }
+
+  return value;
+}
+
 export const api = {
   baseUrl: API_URL,
   verifyApiSecret(apiSecret: string) {
@@ -215,7 +227,10 @@ export const api = {
       headers: {
         'Content-Type': 'application/json',
       },
-    });
+    }).then((response): AnswerPublicFormResponse => ({
+      ...response,
+      totalContactSwaps: parseTotalContactSwaps(response.totalContactSwaps),
+    }));
   },
   getReturnCardDownloadUrl(token: string, retrieveToken: string) {
     const safeToken = encodeURIComponent(token);

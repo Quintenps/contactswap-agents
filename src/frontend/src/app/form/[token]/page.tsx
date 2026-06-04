@@ -791,7 +791,13 @@ export default function FormPage() {
 
       const rt = encodeURIComponent(response.exchange.retrieveToken);
       const exp = encodeURIComponent(response.exchange.expiresAt);
-      router.push(`/form/${formData.token}/done?rt=${rt}&exp=${exp}`);
+      const totalContactSwaps = Number.isSafeInteger(response.totalContactSwaps)
+        ? response.totalContactSwaps
+        : null;
+      const totalContactSwapsQuery = totalContactSwaps !== null
+        ? `&tcs=${encodeURIComponent(String(totalContactSwaps))}`
+        : '';
+      router.push(`/form/${formData.token}/done?rt=${rt}&exp=${exp}${totalContactSwapsQuery}`);
     } catch (error) {
       if (error instanceof ApiClientError) {
         if (error.status === 409) {

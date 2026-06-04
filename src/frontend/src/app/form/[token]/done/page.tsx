@@ -21,6 +21,14 @@ function FormDonePageContent() {
   const token = params.token;
   const retrieveToken = searchParams.get('rt') ?? '';
   const expiresAt = searchParams.get('exp') ?? '';
+  const totalContactSwaps = useMemo(
+    () => parseTotalContactSwaps(searchParams.get('tcs')),
+    [searchParams],
+  );
+  const totalContactSwapsOrdinal = useMemo(
+    () => (totalContactSwaps === null ? null : formatOrdinal(totalContactSwaps, locale)),
+    [locale, totalContactSwaps],
+  );
   const [isDesktop, setIsDesktop] = useState(false);
   const [retrieveState, setRetrieveState] = useState<'checking' | 'valid' | 'missing' | 'invalid' | 'expired' | 'error'>('checking');
 
@@ -151,8 +159,16 @@ function FormDonePageContent() {
             <p className="text-sm leading-7 text-[var(--md-text)]">{t('done.body1')}</p>
             <p className="text-sm leading-7 text-[var(--md-muted)]">{t('done.body2')}</p>
 
+            {totalContactSwapsOrdinal !== null ? (
+              <p className="text-sm leading-7 text-[var(--md-text)]">
+                {t('done.totalSwaps.inline', {
+                  ordinal: totalContactSwapsOrdinal,
+                })}
+              </p>
+            ) : null}
+
             {expiresAt ? (
-              <p className="done-time-chip inline-flex rounded-full px-3 py-1 text-xs">
+              <p className="inline-flex items-center rounded-full border border-[var(--md-outline)] bg-white/80 px-3 py-1 text-xs text-[var(--md-muted)]">
                 {t('done.availableUntil', { date: formatDate(expiresAt, locale) })}
               </p>
             ) : null}
@@ -230,5 +246,41 @@ function formatDate(iso: string, locale: string): string {
     return iso;
   }
   return date.toLocaleString(locale);
+}
+
+function formatOrdinal(value: number, locale: string): string {
+  const formattedNumber = new Intl.NumberFormat(locale).format(value);
+
+  if (locale.startsWith('en')) {
+    const mod10 = value % 10;
+    const mod100 = value % 100;
+    let suffix = 'th';
+
+    if (mod10 === 1 && mod100 !== 11) {
+      suffix = 'st';
+    } else if (mod10 === 2 && mod100 !== 12) {
+      suffix = 'nd';
+    } else if (mod10 === 3 && mod100 !== 13) {
+      suffix = 'rd';
+    }
+
+    return `${formattedNumber}${suffix}`;
+  }
+
+  // Dutch-safe fallback: numeric with an ordinal marker.
+  return `${formattedNumber}e`;
+}
+
+function parseTotalContactSwaps(value: string | null): number | null {
+  if (!value || !/^\d+$/.test(value)) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    return null;
+  }
+
+  return parsed;
 }
 
