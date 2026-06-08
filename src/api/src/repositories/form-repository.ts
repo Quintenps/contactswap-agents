@@ -149,6 +149,7 @@ interface FormAnswerFileRow {
   status: FormStatus;
   answer_vcf_key: string | null;
   original_contact_name: string;
+  expires_at: string;
 }
 
 export interface FormAnswerFileRecord {
@@ -156,6 +157,7 @@ export interface FormAnswerFileRecord {
   status: FormStatus;
   answerVcfKey: string | null;
   originalContactName: string;
+  expiresAt: string;
 }
 
 export async function getFormByToken(
@@ -189,7 +191,7 @@ export async function getFormAnswerFileRecordByToken(
 ): Promise<FormAnswerFileRecord | null> {
   const row = await db
     .prepare(
-      'SELECT token, status, answer_vcf_key, original_contact_name FROM forms WHERE token = ?1',
+      'SELECT token, status, answer_vcf_key, original_contact_name, expires_at FROM forms WHERE token = ?1',
     )
     .bind(token)
     .first<FormAnswerFileRow>();
@@ -203,6 +205,7 @@ export async function getFormAnswerFileRecordByToken(
     status: row.status,
     answerVcfKey: row.answer_vcf_key,
     originalContactName: row.original_contact_name,
+    expiresAt: row.expires_at,
   };
 }
 

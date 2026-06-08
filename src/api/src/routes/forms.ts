@@ -4,6 +4,7 @@
  * Admin routes (require x-api-secret):
  *   GET    /v1/forms          — list forms
  *   POST   /v1/forms          — create a form from a VCF upload
+ *   GET    /v1/forms/:token/download-vcf — download persisted answer VCF by token
  *   GET    /v1/forms/:token/answer — download persisted answer VCF by token
  *   DELETE /v1/forms/:id      — delete a form
  *
@@ -11,7 +12,7 @@
  *   GET    /v1/forms/:token   — retrieve form data by token
  */
 
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import qrcode from 'qrcode-generator';
 import type { Env } from '../types/env';
@@ -20,6 +21,7 @@ import { requireApiSecret } from '../middleware/require-api-secret';
 import { createForm, CreateFormServiceError } from '../services/create-form';
 import {
   deleteFormById,
+  type FormAnswerFileRecord,
   getFormAnswerFileRecordByToken,
   getFormByToken,
   getFormForDelete,
@@ -68,6 +70,29 @@ const formTokenParamSchema = z.object({
     .string()
     .regex(/^[0-9a-f]{64}$/, 'This link is not valid. Please use the full link from the original message.'),
 });
+
+export function getAnswerDownloadError(
+  form: Pick<FormAnswerFileRecord, 'status' | 'answerVcfKey' | 'expiresAt'>,
+  now: string,
+): { status: 404 | 409 | 410; error: string } | null {
+  if (form.status !== 'completed') {
+    if (form.expiresAt < now) {
+      return { status: 410, error: 'Form has expired and was not submitted' };
+    }
+
+    return { status: 409, error: 'Form has not been submitted yet' };
+  }
+
+  if (!form.answerVcfKey) {
+    return { status: 404, error: 'Saved answer file not found' };
+  }
+
+  return null;
+}
+
+export function getAnswerDownloadFilename(originalContactName: string): string {
+  return `${vcfFilename(originalContactName).replace(/\.vcf$/, '')}-answer.vcf`;
+}
 
 formRoutes.get('/', requireApiSecret, async (c) => {
   const parsed = listFormsQuerySchema.safeParse(c.req.query());
@@ -180,7 +205,15 @@ formRoutes.get('/:token', async (c) => {
   return c.json(form, 200);
 });
 
+formRoutes.get('/:token/download-vcf', requireApiSecret, async (c) => {
+  return downloadAnswerVcf(c);
+});
+
 formRoutes.get('/:token/answer', requireApiSecret, async (c) => {
+  return downloadAnswerVcf(c);
+});
+
+async function downloadAnswerVcf(c: Context<AppEnv>) {
   const parsed = formTokenParamSchema.safeParse(c.req.param());
 
   if (!parsed.success) {
@@ -195,30 +228,32 @@ formRoutes.get('/:token/answer', requireApiSecret, async (c) => {
     return c.json({ error: 'Form not found' }, 404);
   }
 
-  if (form.status === 'pending') {
-    return c.json({ error: 'Form has not been submitted yet' }, 409);
+  const downloadError = getAnswerDownloadError(form, new Date().toISOString());
+  if (downloadError) {
+    return c.json({ error: downloadError.error }, downloadError.status);
   }
 
-  if (!form.answerVcfKey) {
+  const answerVcfKey = form.answerVcfKey;
+  if (!answerVcfKey) {
     return c.json({ error: 'Saved answer file not found' }, 404);
   }
 
-  const object = await getAnswerVcf(c.env.R2, form.answerVcfKey);
+  const object = await getAnswerVcf(c.env.R2, answerVcfKey);
   if (!object) {
     return c.json({ error: 'Saved answer file not found' }, 404);
   }
 
-  const downloadName = `${vcfFilename(form.originalContactName).replace(/\.vcf$/, '')}-answer.vcf`;
+  const downloadName = getAnswerDownloadFilename(form.originalContactName);
 
   return new Response(object.body, {
     status: 200,
     headers: {
-      'Content-Type': 'text/vcard',
+      'Content-Type': 'text/vcard; charset=utf-8',
       'Content-Disposition': `attachment; filename="${downloadName}"`,
       'Cache-Control': 'no-store',
     },
   });
-});
+}
 
 const answerFormBodySchema = z.object({
   fields: z.record(z.string(), z.string()),
