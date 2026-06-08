@@ -17,3 +17,4 @@ Agent Scribe initialized and ready for work.
 ## Learnings
 
 Initial setup complete.
+- Feature-012 backend implementation completed in API route and repositories; retrieval is admin-only and validated with `npm run typecheck && npm run build` passing in `src/api`.
