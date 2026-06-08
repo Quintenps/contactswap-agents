@@ -22,6 +22,7 @@ export default function ConfigPage() {
   const [selectedFileName, setSelectedFileName] = useState('');
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const [deletingFormId, setDeletingFormId] = useState<string | null>(null);
+  const [downloadingFormId, setDownloadingFormId] = useState<string | null>(null);
   const [formsOffset, setFormsOffset] = useState(0);
 
   const FORMS_LIMIT = 10;
@@ -214,6 +215,35 @@ export default function ConfigPage() {
     }
   }
 
+  async function handleDownloadFormAnswer(formToken: string) {
+    if (!apiSecret) {
+      return;
+    }
+
+    setDownloadingFormId(formToken);
+    setDashboardError('');
+
+    try {
+      const { blob, filename } = await api.downloadFormAnswerVcf(apiSecret, formToken);
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 401) {
+        handleLogout('Your admin session expired. Enter the API secret again.');
+      } else {
+        setDashboardError(resolveDownloadError(error));
+      }
+    } finally {
+      setDownloadingFormId(null);
+    }
+  }
+
   const tone = buildTone();
 
   if (authState === 'checking') {
@@ -316,7 +346,7 @@ export default function ConfigPage() {
                           <span className="inline-block max-w-[180px] truncate align-bottom text-[0.7rem]">{form.token}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <a
                               href={`/forms/${form.token}`}
                               target="_blank"
@@ -325,6 +355,16 @@ export default function ConfigPage() {
                             >
                               View
                             </a>
+                            {form.status === 'completed' ? (
+                              <button
+                                type="button"
+                                onClick={() => void handleDownloadFormAnswer(form.token)}
+                                disabled={downloadingFormId === form.token}
+                                className={`rounded-md px-2 py-1 text-xs transition ${downloadingFormId === form.token ? 'opacity-60' : 'text-[var(--md-primary)] hover:bg-[var(--md-primary-container)]'}`}
+                              >
+                                {downloadingFormId === form.token ? 'Downloading...' : 'Download'}
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => void handleDeleteForm(form.id)}
@@ -453,6 +493,22 @@ function resolveDashboardError(error: unknown): string {
   }
 
   return 'Something went wrong while loading admin data.';
+}
+
+function resolveDownloadError(error: unknown): string {
+  if (error instanceof ApiClientError) {
+    if (error.status === 409) {
+      return 'This form has not been submitted yet, so there is no contact file to download.';
+    }
+
+    if (error.status === 404) {
+      return 'The contact file could not be found for this form.';
+    }
+
+    return error.message;
+  }
+
+  return 'Could not download the contact file right now. Please try again.';
 }
 
 function formatDate(value: string): string {

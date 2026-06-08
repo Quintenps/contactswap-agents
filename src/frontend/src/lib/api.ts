@@ -54,6 +54,11 @@ type RequestOptions = {
   headers?: HeadersInit;
 };
 
+export type DownloadFormAnswerVcfResult = {
+  blob: Blob;
+  filename: string;
+};
+
 async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     method: options.method ?? 'GET',
@@ -165,6 +170,34 @@ function parseTotalContactSwaps(value: unknown): number | undefined {
   return value;
 }
 
+function parseContentDispositionFilename(contentDisposition: string | null): string | null {
+  if (!contentDisposition) {
+    return null;
+  }
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]).replace(/[\r\n]/g, '').trim();
+    } catch {
+      // Fall through to plain filename parsing.
+    }
+  }
+
+  const plainMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  if (!plainMatch?.[1]) {
+    return null;
+  }
+
+  return plainMatch[1].replace(/[\r\n]/g, '').trim();
+}
+
+function buildDefaultAnswerFilename(token: string): string {
+  const safeToken = token.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 48) || 'form';
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return `contact-${safeToken}-${timestamp}.vcf`;
+}
+
 export const api = {
   baseUrl: API_URL,
   verifyApiSecret(apiSecret: string) {
@@ -211,6 +244,24 @@ export const api = {
       if (!response.ok) {
         throw await buildApiError(response);
       }
+    });
+  },
+  downloadFormAnswerVcf(apiSecret: string, token: string): Promise<DownloadFormAnswerVcfResult> {
+    const safeToken = encodeURIComponent(token);
+
+    return fetch(`${API_URL}/v1/forms/${safeToken}/download-vcf`, {
+      method: 'GET',
+      headers: buildHeaders({ apiSecret }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        throw await buildApiError(response);
+      }
+
+      const blob = await response.blob();
+      const filename = parseContentDispositionFilename(response.headers.get('Content-Disposition'))
+        || buildDefaultAnswerFilename(token);
+
+      return { blob, filename };
     });
   },
   getPublicForm(token: string) {
