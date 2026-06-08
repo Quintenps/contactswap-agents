@@ -12,4 +12,6 @@
 - Recast from Matrix universe (Neo) to Breaking Bad universe.
 - Frontend validation planning now depends on API `invalidField` mapping from feature-008 to produce field-level, accessible error UX.
 - For frontend validation UX, pair mapped field-level errors with a short generic banner, and keep simple precedence where 409/410 token-state responses override 422 mapping.
+- Team update (2026-06-08): Feature 011 (API save form answer) backend implementation is complete and currently tracked as In Progress pending broader completion checks.
+- Team update (2026-06-08): QA attempted coverage for feature 011 but found no existing API test harness, so validation currently relies on implementation review and manual request flow checks.
 

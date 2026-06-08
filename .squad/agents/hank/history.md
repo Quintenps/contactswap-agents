@@ -11,4 +11,5 @@
 - Initialized as tester responsible for quality gates and edge-case coverage.
 - Recast from Matrix universe (Switch) to Breaking Bad universe.
 - Exchange-token migrations must use a non-conflicting later sequence; `0004` is already taken by the photo-template migration.
+- Team update (2026-06-08): Feature 011 QA coverage attempt found no established API test harness in this repo, so API verification currently depends on manual HTTP flow validation unless a harness is introduced.
 
