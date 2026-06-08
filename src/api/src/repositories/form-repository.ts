@@ -144,6 +144,20 @@ interface RetrieveFormRow {
   expires_at: string;
 }
 
+interface FormAnswerFileRow {
+  token: string;
+  status: FormStatus;
+  answer_vcf_key: string | null;
+  original_contact_name: string;
+}
+
+export interface FormAnswerFileRecord {
+  token: string;
+  status: FormStatus;
+  answerVcfKey: string | null;
+  originalContactName: string;
+}
+
 export async function getFormByToken(
   db: D1Database,
   token: string,
@@ -166,6 +180,29 @@ export async function getFormByToken(
     prefilled: JSON.parse(row.prefilled) as Record<string, string>,
     status: row.status,
     expiresAt: row.expires_at,
+  };
+}
+
+export async function getFormAnswerFileRecordByToken(
+  db: D1Database,
+  token: string,
+): Promise<FormAnswerFileRecord | null> {
+  const row = await db
+    .prepare(
+      'SELECT token, status, answer_vcf_key, original_contact_name FROM forms WHERE token = ?1',
+    )
+    .bind(token)
+    .first<FormAnswerFileRow>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    token: row.token,
+    status: row.status,
+    answerVcfKey: row.answer_vcf_key,
+    originalContactName: row.original_contact_name,
   };
 }
 

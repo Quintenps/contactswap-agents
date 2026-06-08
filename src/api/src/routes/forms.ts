@@ -4,6 +4,7 @@
  * Admin routes (require x-api-secret):
  *   GET    /v1/forms          — list forms
  *   POST   /v1/forms          — create a form from a VCF upload
+ *   GET    /v1/forms/:token/answer — download persisted answer VCF by token
  *   DELETE /v1/forms/:id      — delete a form
  *
  * Public routes (no auth):
@@ -14,10 +15,17 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import qrcode from 'qrcode-generator';
 import type { Env } from '../types/env';
+import { vcfFilename } from '../lib/vcf-generator';
 import { requireApiSecret } from '../middleware/require-api-secret';
 import { createForm, CreateFormServiceError } from '../services/create-form';
-import { deleteFormById, getFormByToken, getFormForDelete, listFormRecords } from '../repositories/form-repository';
-import { deleteObjectsByPrefix, getOwnerVcf } from '../repositories/contact-file-repository';
+import {
+  deleteFormById,
+  getFormAnswerFileRecordByToken,
+  getFormByToken,
+  getFormForDelete,
+  listFormRecords,
+} from '../repositories/form-repository';
+import { deleteObjectsByPrefix, getAnswerVcf, getOwnerVcf } from '../repositories/contact-file-repository';
 import { answerForm, AnswerFormError } from '../services/answer-form';
 import { getExchangeTokenByHash, getFormIdByToken } from '../repositories/exchange-token-repository';
 
@@ -170,6 +178,46 @@ formRoutes.get('/:token', async (c) => {
   }
 
   return c.json(form, 200);
+});
+
+formRoutes.get('/:token/answer', requireApiSecret, async (c) => {
+  const parsed = formTokenParamSchema.safeParse(c.req.param());
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return c.json({ error: issue?.message ?? 'Invalid token' }, 422);
+  }
+
+  const { token } = parsed.data;
+
+  const form = await getFormAnswerFileRecordByToken(c.env.D1, token);
+  if (!form) {
+    return c.json({ error: 'Form not found' }, 404);
+  }
+
+  if (form.status === 'pending') {
+    return c.json({ error: 'Form has not been submitted yet' }, 409);
+  }
+
+  if (!form.answerVcfKey) {
+    return c.json({ error: 'Saved answer file not found' }, 404);
+  }
+
+  const object = await getAnswerVcf(c.env.R2, form.answerVcfKey);
+  if (!object) {
+    return c.json({ error: 'Saved answer file not found' }, 404);
+  }
+
+  const downloadName = `${vcfFilename(form.originalContactName).replace(/\.vcf$/, '')}-answer.vcf`;
+
+  return new Response(object.body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/vcard',
+      'Content-Disposition': `attachment; filename="${downloadName}"`,
+      'Cache-Control': 'no-store',
+    },
+  });
 });
 
 const answerFormBodySchema = z.object({

@@ -36,6 +36,13 @@ export async function putAnswerVcf(
   return key;
 }
 
+export async function getAnswerVcf(
+  bucket: R2Bucket,
+  key: string,
+): Promise<R2ObjectBody | null> {
+  return bucket.get(key);
+}
+
 export async function putContactPhoto(
   bucket: R2Bucket,
   objectKey: string,
