@@ -19,6 +19,7 @@ import {
   validateFormSubmission,
 } from './validate-form-submission';
 import type { FormSubmissionValidationError } from './validate-form-submission';
+import { putAnswerVcf } from '../repositories/contact-file-repository';
 import {
   getFormIdByToken,
   insertExchangeToken,
@@ -61,6 +62,7 @@ export interface AnswerFormEmailConfig {
 
 export async function answerForm(
   db: D1Database,
+  bucket: R2Bucket,
   input: AnswerFormInput,
   emailConfig?: AnswerFormEmailConfig,
 ): Promise<AnswerFormResponse> {
@@ -107,9 +109,10 @@ export async function answerForm(
   }
 
   const vcf = generateVcf({ contact, photoBase64, photoMimeType });
+  const answerVcfKey = await putAnswerVcf(bucket, input.token, vcf);
 
   // Atomically mark completed — guards against race conditions
-  const completed = await markFormCompleted(db, input.token, now);
+  const completed = await markFormCompleted(db, input.token, now, answerVcfKey);
 
   if (!completed) {
     // Another request beat us: re-fetch to determine the right error

@@ -24,6 +24,18 @@ export async function putOriginalVcf(
   });
 }
 
+export async function putAnswerVcf(
+  bucket: R2Bucket,
+  token: string,
+  vcfText: string,
+): Promise<string> {
+  const key = `forms/${token}/answer.vcf`;
+  await bucket.put(key, vcfText, {
+    httpMetadata: { contentType: 'text/vcard' },
+  });
+  return key;
+}
+
 export async function putContactPhoto(
   bucket: R2Bucket,
   objectKey: string,

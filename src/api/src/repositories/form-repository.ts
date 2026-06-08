@@ -178,14 +178,15 @@ export async function markFormCompleted(
   db: D1Database,
   token: string,
   completedAt: string,
+  answerVcfKey: string,
 ): Promise<boolean> {
   const result = await db
     .prepare(
       `UPDATE forms
-       SET status = 'completed', completed_at = ?1
-       WHERE token = ?2 AND status = 'pending' AND expires_at > ?3`,
+       SET status = 'completed', completed_at = ?1, answer_vcf_key = ?2
+       WHERE token = ?3 AND status = 'pending' AND expires_at > ?4`,
     )
-    .bind(completedAt, token, completedAt)
+    .bind(completedAt, answerVcfKey, token, completedAt)
     .run();
 
   return (result.meta.changes ?? 0) > 0;

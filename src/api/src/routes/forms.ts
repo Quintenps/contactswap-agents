@@ -200,6 +200,7 @@ formRoutes.post('/:token/answer', async (c) => {
   try {
     const response = await answerForm(
       c.env.D1,
+      c.env.R2,
       {
         token: tokenParsed.data.token,
         fields: bodyParsed.data.fields,
